@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP - Conify</title>
+  
+  <link rel="stylesheet" href="css/signup&login.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card-wrapper">
+      <div class="card">
+        <!-- OTP Verification Section -->
+        <div id="otpSection" class="form-section active">
+          <div class="header">
+            <div class="otp-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="m2 7 10 7 10-7"></path>
+              </svg>
+            </div>
+            <h1>Verify Your Email</h1>
+            <p>We've sent a 4-digit code to</p>
+            <p class="email-display"></p> <!-- Populated by JS -->
+          </div>
+
+          <form id="otpForm" class="form">
+            <div class="form-group">
+              <label>Enter OTP Code</label>
+              <div class="otp-inputs">
+                <input type="text" maxlength="1" class="otp-input" data-index="0">
+                <input type="text" maxlength="1" class="otp-input" data-index="1">
+                <input type="text" maxlength="1" class="otp-input" data-index="2">
+                <input type="text" maxlength="1" class="otp-input" data-index="3">
+              </div>
+              <span class="error-message"></span>
+            </div>
+
+            <button type="submit" class="submit-btn">
+              <span>Verify & Sign Up</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </button>
+
+            <div class="otp-resend">
+              <p>Didn't receive the code?</p>
+              <button type="button" id="resendBtn" class="resend-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+                Resend OTP
+              </button>
+            </div>
+
+            <div class="form-footer">
+              <!-- Fixed navigation -->
+              <p><a href="signup.html" id="backBtn">← Back to signup</a></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+<div class="otp-message"></div>
+  <!-- Load script at the very end -->
+  <script src="js/otp.js"></script>
+</body>
+</html>

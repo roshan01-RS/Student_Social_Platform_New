@@ -1,0 +1,649 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow-x: hidden;
+}
+
+/* Background Styles */
+.background {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(135deg, #1f2937 0%, #374151 50%, #1f2937 100%);
+    overflow: hidden;
+}
+
+.backdrop-layer {
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(8px);
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Animated Blobs */
+.blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    mix-blend-mode: screen;
+    animation: blob 7s infinite;
+}
+
+.blob-1 {
+    top: 5rem;
+    left: 5rem;
+    width: 18rem;
+    height: 18rem;
+    background-color: #a855f7;
+    opacity: 0.2;
+}
+
+.blob-2 {
+    top: 10rem;
+    right: 5rem;
+    width: 18rem;
+    height: 18rem;
+    background-color: #3b82f6;
+    opacity: 0.2;
+    animation-delay: 2s;
+}
+
+.blob-3 {
+    bottom: 5rem;
+    left: 10rem;
+    width: 18rem;
+    height: 18rem;
+    background-color: #ec4899;
+    opacity: 0.2;
+    animation-delay: 4s;
+}
+
+@keyframes blob {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+/* Container */
+.container {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+/* Card Wrapper */
+.card-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 28rem;
+    animation: fadeInUp 0.6s ease-out;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Card Glow */
+.card-glow {
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(to right, #9333ea, #ec4899, #3b82f6);
+    border-radius: 1rem;
+    filter: blur(8px);
+    opacity: 0.25;
+}
+
+/* Card */
+.card {
+    position: relative;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Form Section */
+.form-section {
+    display: none;
+    animation: sectionFadeIn 0.5s ease-out;
+}
+
+.form-section.active {
+    display: block;
+}
+
+@keyframes sectionFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.header h1 {
+    color: white;
+    font-size: 1.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.header p {
+    color: #d1d5db;
+    font-size: 0.875rem;
+}
+
+.email-display {
+    color: #c084fc;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+/* OTP Icon */
+.otp-icon {
+    margin: 0 auto 1rem;
+    width: 4rem;
+    height: 4rem;
+    background-color: rgba(147, 51, 234, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.otp-icon svg {
+    color: #c084fc;
+}
+
+/* Form */
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Form Group */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    animation: itemFadeIn 0.5s ease-out;
+}
+
+@keyframes itemFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-group:nth-child(1) { animation-delay: 0.1s; }
+.form-group:nth-child(2) { animation-delay: 0.2s; }
+.form-group:nth-child(3) { animation-delay: 0.3s; }
+
+/* Label */
+label {
+    color: #e5e7eb;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+/* Input Wrapper */
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    color: #9ca3af;
+    pointer-events: none;
+    transition: color 0.2s;
+}
+
+.validation-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.25rem;
+    height: 1.25rem;
+    display: none;
+}
+
+.validation-icon.success-icon {
+    color: #4ade80;
+}
+
+/* Input */
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.5rem;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder {
+    color: #9ca3af;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+    border-color: rgba(147, 51, 234, 0.5);
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.2);
+}
+
+input[type="text"]:focus ~ .input-icon,
+input[type="email"]:focus ~ .input-icon,
+input[type="password"]:focus ~ .input-icon {
+    color: #c084fc;
+}
+
+input.error {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Error Message */
+.error-message {
+    color: #f87171;
+    font-size: 0.75rem;
+    display: none;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.error-message.show {
+    display: flex;
+    animation: errorFadeIn 0.3s ease-out;
+}
+
+@keyframes errorFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.error-message::before {
+    content: "✕";
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
+/* Help Text */
+.help-text {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    display: none;
+}
+
+.help-text.show {
+    display: block;
+}
+
+/* Password Strength Meter */
+.password-strength {
+    margin-top: 0.5rem;
+    animation: strengthFadeIn 0.3s ease-out;
+}
+
+@keyframes strengthFadeIn {
+    from {
+        opacity: 0;
+        height: 0;
+    }
+    to {
+        opacity: 1;
+        height: auto;
+    }
+}
+
+.strength-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.strength-label {
+    color: #d1d5db;
+    font-size: 0.75rem;
+}
+
+.strength-value {
+    font-size: 0.75rem;
+}
+
+.strength-value.weak { color: #f87171; }
+.strength-value.fair { color: #fb923c; }
+.strength-value.good { color: #facc15; }
+.strength-value.strong { color: #4ade80; }
+
+.strength-bar-container {
+    width: 100%;
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.strength-bar {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    width: 0;
+}
+
+.strength-bar.weak { background-color: #ef4444; }
+.strength-bar.fair { background-color: #f97316; }
+.strength-bar.good { background-color: #eab308; }
+.strength-bar.strong { background-color: #22c55e; }
+
+/* OTP Inputs */
+.otp-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.otp-input {
+    width: 3.5rem !important;
+    height: 3.5rem;
+    padding: 0 !important;
+    text-align: center;
+    font-size: 1.5rem;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 0.5rem;
+    color: white;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.otp-input:focus {
+    border-color: rgba(147, 51, 234, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.2), 0 0 10px rgba(147, 51, 234, 0.3);
+    animation: pulseGlow 2s infinite;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.2), 0 0 10px rgba(147, 51, 234, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.2), 0 0 20px rgba(147, 51, 234, 0.5);
+    }
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(to right, #9333ea, #ec4899);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.submit-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, #7e22ce, #be185d);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.submit-btn:hover::before {
+    opacity: 1;
+}
+
+.submit-btn span,
+.submit-btn svg {
+    position: relative;
+    z-index: 1;
+}
+
+.submit-btn:hover svg {
+    transform: translateX(4px);
+}
+
+.submit-btn svg {
+    transition: transform 0.2s;
+}
+
+/* OTP Resend */
+.otp-resend {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.otp-resend p {
+    color: #d1d5db;
+    font-size: 0.875rem;
+}
+
+.resend-btn {
+    background: transparent;
+    color: #c084fc;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.resend-btn:hover {
+    color: #d8b4fe;
+    background-color: rgba(147, 51, 234, 0.1);
+}
+
+/* Form Footer */
+.form-footer {
+    text-align: center;
+    animation: itemFadeIn 0.5s ease-out 0.5s backwards;
+}
+
+.form-footer p {
+    color: #d1d5db;
+    font-size: 0.875rem;
+}
+
+.form-footer a {
+    color: #c084fc;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.form-footer a:hover {
+    color: #d8b4fe;
+}
+
+/* Back Button */
+.back-btn {
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.back-btn:hover {
+    color: #d1d5db;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .card {
+        padding: 1.5rem;
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .otp-input {
+        width: 3rem !important;
+        height: 3rem;
+        font-size: 1.25rem;
+    }
+
+    .blob {
+        width: 12rem;
+        height: 12rem;
+    }
+}
+.close-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 1rem;
+            color: white; /* Changed to white for better visibility */
+            font-size: 1.75rem;
+            font-weight: bold;
+            text-decoration: none;
+            z-index: 20; /* Ensure it's above other card content */
+            transition: color 0.2s, transform 0.2s;
+        }
+        .close-btn:hover {
+            color: #e5e7eb; /* Changed hover to a light gray for feedback */
+            transform: scale(1.1);
+        }
+        
+body, .card, .card-wrapper {
+        background-color: transparent !important;
+    }
+    .background, .card-glow {
+        display: none;
+    }
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+.notification {
+    visibility: hidden;
+    min-width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    /* CHANGED: Start off-screen at the TOP */
+    top: -100px; 
+    transform: translateX(-50%);
+    font-size: 1rem;
+    opacity: 0;
+    /* CHANGED: Transition 'top' instead of 'bottom' */
+    transition: opacity 0.3s, top 0.3s;
+}
+
+.notification.show {
+    visibility: visible;
+    opacity: 1;
+    /* CHANGED: Slide down to 20px from the top */
+    top: 20px;
+}
+
+.notification.error {
+    background-color: #ef4444; /* Red for errors */
+}
+
+.notification.success {
+    background-color: #10b981; /* Green for success */
+}
+.otp-message {
+    margin-top: 10px;
+    font-weight: 500;
+}
+.otp-message.error { color: red; }
+.otp-message.success { color: green; }
+.otp-message.info { color: blue; }
+.otp-message.warning { color: orange; }
+.login-message {
+    margin-top: 10px;
+    font-weight: 500;
+}
+.login-message.error { color: red; }
+.login-message.success { color: green; }
+.login-message.info { color: blue; }
