@@ -2,26 +2,26 @@ package com.conify.repository;
 
 import com.conify.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.Optional;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     
-    // Spring automatically implements this to check for duplicates.
-    // Replaces: "SELECT 1 FROM users WHERE email = ?"
+    // --- Methods for other services ---
     boolean existsByEmail(String email);
-
     boolean existsByUsername(String username);
-    
-    // Spring automatically implements this to find a user.
-    // Replaces: "SELECT * FROM users WHERE email = ?"
     Optional<User> findByEmail(String email);
+    Optional<User> findByUsername(String username);
 
-    // --- NEW: Magic method to delete expired, unverified users ---
-    // Spring automatically translates this long name into the correct SQL DELETE query.
+    // --- FIXED: This is the ONLY method LoginService needs ---
+    // It finds a user where the identifier matches EITHER the email OR the username,
+    // ignoring case for both.
+    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:identifier) OR LOWER(u.username) = LOWER(:identifier)")
+    Optional<User> findByEmailOrUsernameIgnoreCase(@Param("identifier") String identifier);
+
     void deleteByIsVerifiedAndOtpCreatedAtBefore(Integer isVerified, Timestamp expiryTime);
 }

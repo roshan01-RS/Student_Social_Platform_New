@@ -3,10 +3,14 @@ package com.conify.service;
 import com.conify.model.User;
 import com.conify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+// --- NEW IMPORTS FOR RETRY LOGIC ---
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime; 
 import java.util.Random;
 
 @Service
@@ -23,6 +27,9 @@ public class ResendService {
         public UserNotFoundException(String message) { super(message); }
     }
 
+    // Retries up to 3 times if SQLite is busy, waiting 1s between tries
+    @Retryable(retryFor = CannotAcquireLockException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
+    @Transactional
     public void resendOtp(String email) throws UserNotFoundException {
         // 1. Find the user in the DB
         User user = userRepository.findByEmail(email)

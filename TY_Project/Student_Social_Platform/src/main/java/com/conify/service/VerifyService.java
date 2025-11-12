@@ -11,6 +11,12 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 @Service
 public class VerifyService {
 
@@ -23,7 +29,7 @@ public class VerifyService {
     public static class VerificationException extends Exception {
         public VerificationException(String message) { super(message); }
     }
-
+    @Retryable(retryFor = CannotAcquireLockException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     @Transactional // Ensures the read-update-save happens safely together
     public String verifyUser(VerifyDTO verifyDTO) throws VerificationException {
         // 1. Find the user

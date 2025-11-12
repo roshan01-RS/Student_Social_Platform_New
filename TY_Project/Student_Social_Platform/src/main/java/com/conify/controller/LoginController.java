@@ -19,29 +19,31 @@ public class LoginController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginDTO loginDTO) {
-        Map<String, String> response = new HashMap<>();
+        Map<String, String> response; // Declare response map
         try {
-            String successMessage = loginService.loginUser(loginDTO);
+            // FIXED: 'serviceResponse' is now a Map that contains the token and message
+            Map<String, String> serviceResponse = loginService.loginUser(loginDTO);
             
+            // We can use this map directly as our response
+            response = serviceResponse; 
             response.put("status", "success");
-            response.put("message", successMessage);
-            // In a real app, you might return a JWT token here too
+            
             return ResponseEntity.ok(response);
 
         } catch (LoginService.InvalidCredentialsException e) {
-            // Returns 401 Unauthorized
+            response = new HashMap<>(); // Initialize map for error
             response.put("status", "error");
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
 
         } catch (LoginService.NotVerifiedException e) {
-            // Returns 403 Forbidden
-            response.put("status", "unverified"); // Match your frontend's expected status
+            response = new HashMap<>(); // Initialize map for error
+            response.put("status", "unverified");
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
 
         } catch (Exception e) {
-            // Returns 500 Internal Server Error for anything else unexpected
+            response = new HashMap<>(); // Initialize map for error
             response.put("status", "error");
             response.put("message", "Login failed due to server error.");
             e.printStackTrace();

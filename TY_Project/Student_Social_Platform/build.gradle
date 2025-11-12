@@ -22,7 +22,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'      // Replaces embedded Tomcat & Servlet API
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa' // Replaces raw JDBC
     implementation 'org.springframework.boot:spring-boot-starter-mail'     // Replaces jakarta.mail & angus-mail
-    
+    implementation 'org.springframework.retry:spring-retry'
     // --- CRITICAL: SQLite Support ---
     // Spring Boot needs the driver to connect
     runtimeOnly 'org.xerial:sqlite-jdbc:3.45.1.0'
@@ -36,6 +36,11 @@ dependencies {
 
     // --- TESTING ---
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // JJWT Dependency for creating and verifying JWT tokens
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // Use jjwt-jackson if using Jackson for JSON parsing
 }
 
 tasks.named('test') {

@@ -20,6 +20,10 @@ public class User {
 
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+    
+    // --- NEW FIELD ADDED ---
+    @Column(name = "school_name")
+    private String schoolName;
 
     private String otp;
 
@@ -39,14 +43,6 @@ public class User {
     @Column(name = "reset_token_expiry")
     private Timestamp resetTokenExpiry;
 
-    // ... existing getters and setters ...
-
-    // --- NEW GETTERS AND SETTERS ---
-    public String getResetToken() { return resetToken; }
-    public void setResetToken(String resetToken) { this.resetToken = resetToken; }
-
-    public Timestamp getResetTokenExpiry() { return resetTokenExpiry; }
-    public void setResetTokenExpiry(Timestamp resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
     // --- Getters and Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -56,6 +52,11 @@ public class User {
     public void setEmail(String email) { this.email = email; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    
+    // --- NEW Getter/Setter for schoolName ---
+    public String getSchoolName() { return schoolName; }
+    public void setSchoolName(String schoolName) { this.schoolName = schoolName; }
+    
     public String getOtp() { return otp; }
     public void setOtp(String otp) { this.otp = otp; }
     public Timestamp getOtpCreatedAt() { return otpCreatedAt; }
@@ -66,4 +67,8 @@ public class User {
     public void setRegistrationSuccessfulAt(Timestamp registrationSuccessfulAt) {
         this.registrationSuccessfulAt = registrationSuccessfulAt;
     }
+    public String getResetToken() { return resetToken; }
+    public void setResetToken(String resetToken) { this.resetToken = resetToken; }
+    public Timestamp getResetTokenExpiry() { return resetTokenExpiry; }
+    public void setResetTokenExpiry(Timestamp resetTokenExpiry) { this.resetTokenExpiry = resetTokenExpiry; }
 }

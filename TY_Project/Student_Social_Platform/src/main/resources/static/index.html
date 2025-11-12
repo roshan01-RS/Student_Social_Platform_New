@@ -4,16 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Conify - Where Students Connect</title>
-  
-  <!-- 1. Load Google Font (Inter) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- 2. Link to your new stylesheet -->
-  <link rel="stylesheet" href="css/index.css">
-
-  
+  <link rel="stylesheet" href="css/global.css">
 </head>
 <body class="min-h-screen bg-white">
 
@@ -22,7 +16,6 @@
     <div class="nav-container">
       <div class="logo">
         <div class="logo-icon">
-          <!-- New SVG Logo -->
           <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
             <path d="M18.37 8.18c-1.32-2.3-3.6-3.88-6.37-3.88-4.42 0-8 3.58-8 8s3.58 8 8 8c2.77 0 5.05-1.58 6.37-3.88"/>
           </svg>
@@ -34,8 +27,8 @@
         <a href="#how-it-works">How It Works</a>
       </div>
       <div class="nav-buttons">
-        <button class="btn btn-signin">Sign In</button>
-        <button class="btn btn-signup">Sign Up</button>
+        <button id="btnLogin" class="btn btn-signin js-open-login">Sign In</button>
+        <button id="btnSignup" class="btn btn-signup js-open-signup">Sign Up</button>
       </div>
     </div>
   </nav>
@@ -43,30 +36,19 @@
   <!-- Hero Section -->
   <section class="hero">
     <div class="hero-container" style="position: relative;">
-      
       <div>
-       
-        <h1 class="hero-title">
-          Where Students Connect, Chat & Grow Together
-        </h1>
+        <h1 class="hero-title">Where Students Connect, Chat & Grow Together</h1>
         <p class="hero-description">
-          Conify is the ultimate social platform built exclusively for students. 
-          Connect with classmates, join study groups, share your journey, and build 
-          lasting friendships in one vibrant community designed just for you.
+          Conify is the ultimate social platform built exclusively for students.
+          Connect with classmates, join study groups, share your journey, and
+          build lasting friendships in one vibrant community designed just for you.
         </p>
         <div class="hero-buttons">
-          <button class="btn btn-signup btn-large">Get Started Free</button>
+          <button class="btn btn-signup btn-large js-open-signup">Get Started Free</button>
         </div>
-        
       </div>
-    
-      <!-- Animated GIF Characters -->
       <div class="hero-gif-container">
-        <img
-          src="stock_image\landing_page1.gif"
-          alt="Animated students chatting"
-          class="hero-gif"
-        />
+        <img src="stock_image/landing_page1.gif" alt="Animated students chatting" class="hero-gif"/>
       </div>
     </div>
   </section>
@@ -84,73 +66,74 @@
         <!-- Feature 1 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img
-              src="stock_image\chat.gif"
-              alt="Chat animation"
-              class="feature-gif"
-            />
+            <img src="stock_image/chat.gif" alt="Chat animation" class="feature-gif"/>
           </div>
-          <!-- Replaced emoji with SVG icon -->
           <h3 class="feature-title">
-            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
             Chat
           </h3>
           <p class="feature-description">
-            Connect one-on-one with classmates instantly. Share ideas, ask questions, and build meaningful friendships through real-time conversations.
+            Connect one-on-one with classmates instantly. Share ideas, ask questions,
+            and build meaningful friendships through real-time conversations.
           </p>
         </div>
         <!-- Feature 2 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img
-              src="stock_image\groupchat.gif"
-              alt="Group chat animation"
-              class="feature-gif"
-            />
+            <img src="stock_image/groupchat.gif" alt="Group chat animation" class="feature-gif"/>
           </div>
-          <!-- Replaced emoji with SVG icon -->
           <h3 class="feature-title">
-            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
             Group Chat
           </h3>
           <p class="feature-description">
-            Create or join group conversations for your courses. Collaborate on projects, study together, and never miss important updates from your study squad.
+            Create or join group conversations for your courses. Collaborate on
+            projects, study together, and never miss important updates from your study squad.
           </p>
         </div>
         <!-- Feature 3 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img
-              src="stock_image\community.gif"
-              alt="Community animation"
-              class="feature-gif"
-            />
+            <img src="stock_image/community.gif" alt="Community animation" class="feature-gif"/>
           </div>
-          <!-- Replaced emoji with SVG icon -->
           <h3 class="feature-title">
-            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
             Community
           </h3>
           <p class="feature-description">
-            Join vibrant communities based on your interests, major, or hobbies. Discover events, share resources, and grow your network across campus.
+            Join vibrant communities based on your interests, major, or hobbies.
+            Discover events, share resources, and grow your network across campus.
           </p>
         </div>
         <!-- Feature 4 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img
-              src="stock_image\post.gif"
-              alt="Post animation"
-              class="feature-gif"
-            />
+            <img src="stock_image/post.gif" alt="Post animation" class="feature-gif"/>
           </div>
-          <!-- Replaced emoji with SVG icon -->
           <h3 class="feature-title">
-            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
             Post
           </h3>
           <p class="feature-description">
-            Share your thoughts, achievements, and experiences with your community. Get feedback, celebrate wins, and inspire others with your journey.
+            Share your thoughts, achievements, and experiences with your community.
+            Get feedback, celebrate wins, and inspire others with your journey.
           </p>
         </div>
       </div>
@@ -162,51 +145,50 @@
     <div class="features-container">
       <div class="section-header">
         <h2 class="section-title">How It Works</h2>
-        <p class="section-description">
-          Get started in three simple steps
-        </p>
+        <p class="section-description">Get started in three simple steps</p>
       </div>
       <div class="steps-grid">
         <div class="step-item">
           <div class="step-number">1</div>
           <h3 class="step-title">Create Your Profile</h3>
           <p class="step-description">
-            Sign up with your university email and set up your profile in minutes. Share your interests and courses.
+            Sign up with your university email and set up your profile in minutes.
+            Share your interests and courses.
           </p>
         </div>
         <div class="step-item">
           <div class="step-number">2</div>
           <h3 class="step-title">Find Your Community</h3>
           <p class="step-description">
-            Discover study groups, join communities based on your major, and connect with like-minded students.
+            Discover study groups, join communities based on your major,
+            and connect with like-minded students.
           </p>
         </div>
         <div class="step-item">
           <div class="step-number">3</div>
           <h3 class="step-title">Collaborate & Excel</h3>
           <p class="step-description">
-            Start collaborating, sharing resources, and achieving your academic goals together with peers.
-          </p> <!-- Fixed typo here -->
+            Start collaborating, sharing resources, and achieving your academic goals together.
+          </p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA Section -->
+  <!-- CTA -->
   <section class="cta-section">
     <div class="cta-container">
       <div class="cta-box">
         <h2 class="cta-title">Ready to Transform Your Student Life?</h2>
         <p class="cta-description">
-          Join thousands of students who are already learning and growing together on Conify
+          Join thousands of students who are already learning and growing together on Conify.
         </p>
         <div class="cta-buttons">
-          <button class="btn btn-signup btn-large">Sign Up for Free</button>
+          <button class="btn btn-signup btn-large js-open-signup">Sign Up for Free</button>
           <button class="btn btn-outline btn-large" style="border-color: white; color: white;">
             Learn More
           </button>
         </div>
-        
       </div>
     </div>
   </section>
@@ -217,54 +199,275 @@
       <div class="footer-brand">
         <div class="logo">
           <div class="logo-icon">
-            <!-- New SVG Logo for Footer -->
             <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18.37 8.18c-1.32-2.3-3.6-3.88-6.37-3.88-4.42 0-8 3.58-8 8s3.58 8 8 8c2.77 0 5.05-1.58 6.37-3.88"/>
+              <path d="M18.37 8.18c-1.32-2.3-3.6-3.88-6.37-3.88 -4.42 0-8 3.58-8 8s3.58 8 8 8c2.77 0 5.05-1.58 6.37-3.88"/>
             </svg>
           </div>
           <span class="logo-text" style="color: white;">Conify</span>
         </div>
-        <p>
-          Empowering students to connect, collaborate, and succeed together in one vibrant platform.
-        </p>
+        <p>Empowering students to connect, collaborate, and succeed together.</p>
       </div>
       <div class="footer-bottom">
         <p>&copy; 2025 Conify. All rights reserved.</p>
       </div>
     </div>
   </footer>
-<!-- [NEW] AUTHENTICATION MODAL -->
-  <div id="auth-modal-backdrop" class="auth-modal-backdrop" style="display: none;">
-    
-    <!-- Animated background elements (moved from other files) -->
-    <div class="blob blob-1"></div>
-    <div class="blob blob-2"></div>
-    <div class="blob blob-3"></div>
 
-    <div id="auth-modal" class="auth-modal">
-      <!-- The close button -->
-      <button id="auth-modal-close-btn" class="auth-modal-close-btn">&times;</button>
-      
-      <!-- The iframe where login/signup pages will be loaded -->
-      <iframe id="auth-iframe" src="about:blank" frameborder="0"></iframe>
+  <!-- LOGIN MODAL -->
+  <div id="loginModal" class="auth-modal-backdrop" style="display: none;">
+    <div class="auth-modal">
+      <button class="auth-modal-close-btn js-close-modal">&times;</button>
+      <div class="container">
+        <div class="card-wrapper">
+          <div class="card">
+            <div id="loginSection" class="form-section active">
+              <div class="header">
+                <h1>Welcome Back!</h1>
+                <p>Sign in to continue to your account</p>
+              </div>
+              <div class="login-message"></div>
+              <form id="loginForm" class="form">
+                <div class="form-group">
+                  <label for="username">Username or Email</label>
+                  <div class="input-wrapper">
+                    <input type="text" id="username" placeholder="your_username" required>
+                  </div>
+                   <span class="error-message"></span>
+                </div>
+                <div class="form-group">
+                  <label for="password">Password</label>
+                  <div class="input-wrapper">
+                    <input type="password" id="password" placeholder="Your password" required>
+                    <!-- FIXED: Using <img> tag with relative path -->
+                    <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
+                  </div>
+                   <span class="error-message"></span>
+                </div>
+                <button type="submit" class="submit-btn">
+                  <span>Sign In</span>
+                </button>
+                <div class="form-footer">
+                  <a href="#" class="js-open-forgot">Forgot Password?</a>
+                  <p>Don't have an account? <a href="#" class="js-open-signup">Sign Up</a></p>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <!-- END AUTH MODAL -->
-<script>
-window.addEventListener('message', (event) => {
-    if (typeof event.data === 'string' && event.data.startsWith('navigateTo:')) {
-        const target = event.data.split(':')[1];
-        const iframe = document.getElementById('auth-iframe'); // ✅ Correct iframe ID
 
-        if (target === 'otp' && iframe) {
-            console.log("📨 Received message: navigating iframe to OTP page...");
-            iframe.src = './otp.html'; // load OTP page inside modal iframe
-        }
-    }
-});
-</script>
+  <!-- SIGNUP MODAL -->
+  <div id="signupModal" class="auth-modal-backdrop" style="display:none;">
+    <div id="signupModalContent" class="auth-modal">
+      <button class="auth-modal-close-btn js-close-modal">&times;</button>
+      <div class="container">
+        <div class="card-wrapper">
+          <div class="card">
+            <div id="signupSection" class="form-section active">
+              <div class="header">
+                <h1>Create Account</h1>
+                <p>Join us today and get started</p>
+              </div>
+              <form id="signupForm" class="form">
+                <div class="form-group">
+                  <label for="username_signup">Username</label>
+                  <div class="input-wrapper">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <input type="text" id="username_signup" placeholder="username_123" required />
+                  </div>
+                  <!-- REMOVED help-text -->
+                  <span class="error-message"></span>
+                </div>
+                
+                <!-- ADDED: School Selection Field -->
+                <div class="form-group school-search-wrapper">
+                  <label for="school_search">School/College Name/Institute Name</label>
+                  <div class="input-wrapper">
+                     <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                     </svg>
+                    <input type="text" id="school_search" placeholder="Search for your school..." autocomplete="off">
+                    <button type="button" class="clear-search js-clear-school" style="display: none;">&times;</button>
+                  </div>
+                  <div class="autocomplete-results" id="school_results" style="display: none;"></div>
+                </div>
 
-<div id="notification-container" style="position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999;"></div>
-  <script src="js/index.js"></script> <!-- Changed from signup.js -->
+                <div class="form-group">
+                  <label for="email">Email</label>
+                  <div class="input-wrapper">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                      <path d="m2 7 10 7 10-7"></path>
+                    </svg>
+                    <input type="email" id="email" placeholder="yourname@gmail.com" required />
+                  </div>
+                  <!-- REMOVED help-text -->
+                  <span class="error-message"></span>
+                </div>
+                <div class="form-group">
+                  <label for="password_signup">Password</label>
+                  <div class="input-wrapper">
+                    <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <input type="password" id="password_signup" placeholder="Min 8 chars, letters & numbers" required />
+                    <!-- FIXED: Using <img> tag with relative path -->
+                    <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
+                  </div>
+                  <div class="password-strength" style="display: none;">
+                    <div class="strength-value">Weak</div>
+                    <div class="strength-bar"></div>
+                  </div>
+                  <span class="error-message"></span>
+                </div>
+                <button type="submit" id="signupBtn" class="submit-btn">
+                  <span>Continue</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </button>
+                <div class="form-footer">
+                  <p>Already have an account? <a href="#" class="js-open-login">Sign In</a></p>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP MODAL -->
+  <div id="otpModal" class="auth-modal-backdrop" style="display:none;">
+    <div id="otpModalContent" class="auth-modal">
+      <button class="auth-modal-close-btn js-close-modal">&times;</button>
+      <div class="container">
+        <div class="card-wrapper">
+          <div class="card">
+            <div id="otpSection" class="form-section active">
+              <div class="header">
+                <div class="otp-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                    <path d="m2 7 10 7 10-7"></path>
+                  </svg>
+                </div>
+                <h1>Verify Your Email</h1>
+                <p>We've sent a 4-digit code to</p>
+                <p class="email-display"></p>
+              </div>
+              <form id="otpForm" class="form">
+                <div class="form-group">
+                  <label>Enter OTP Code</label>
+                  <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0">
+                    <input type="text" maxlength="1" class="otp-input" data-index="1">
+                    <input type="text" maxlength="1" class="otp-input" data-index="2">
+                    <input type="text" maxlength="1" class="otp-input" data-index="3">
+                  </div>
+                  <span class="error-message"></span>
+                </div>
+                <button type="submit" class="submit-btn">
+                  <span>Verify & Sign Up</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </button>
+                <div class="otp-resend">
+                  <p>Didn't receive the code?</p>
+                  <button type="button" id="resendBtn" class="resend-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Resend OTP
+                  </button>
+                </div>
+                <div class="form-footer">
+                  <p><a href="#" class="js-open-signup">← Back to Signup</a></p>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD MODAL -->
+  <div id="forgotPasswordModal" class="auth-modal-backdrop" style="display:none;">
+    <div id="forgotPasswordModalContent" class="auth-modal">
+      <button class="auth-modal-close-btn js-close-modal">&times;</button>
+      <div class="container">
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="header text-center mb-4">
+              <h2>Reset Password</h2>
+              <p class="text-light-emphasis">Enter your email to receive a code</p>
+            </div>
+            <div class="login-message"></div>
+            <form id="forgotForm" class="form">
+              <div class="form-group mb-4">
+                <label class="form-label">Email</label>
+                <div class="input-wrapper">
+                    <input type="email" id="forgotEmail" placeholder="name@example.com" required>
+                </div>
+                <span class="error-message"></span>
+              </div>
+              <button type="submit" id="sendBtn" class="submit-btn w-100">Send Code</button>
+              <div class="form-footer text-center mt-3">
+                <a href="#" class="js-open-login">Back to Sign In</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET PASSWORD MODAL -->
+  <div id="resetPasswordModal" class="auth-modal-backdrop" style="display:none;">
+    <div id="resetPasswordModalContent" class="auth-modal">
+      <button class="auth-modal-close-btn js-close-modal">&times;</button>
+      <div class="container">
+        <div class="card-wrapper">
+          <div class="card">
+            <div class="header text-center mb-4">
+              <h2>New Password</h2>
+              <p class="text-light-emphasis">Create a strong new password</p>
+            </div>
+            <div class="login-message"></div>
+            <form id="resetForm" class="form">
+              <div class="form-group mb-4">
+                <label class="form-label">New Password</label>
+                <div class="input-wrapper">
+                  <input type="password" id="newPassword" required placeholder="Min 8 chars">
+                   <!-- FIXED: Using <img> tag with relative path -->
+                   <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
+                </div>
+                <span class="error-message"></span>
+              </div>
+              <button type="submit" class="submit-btn w-100">Reset Password</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Container -->
+  <div id="notification-container"></div>
+
+  <!-- ADDED colleges.js SCRIPT -->
+  <script src="js/colleges.js"></script>
+  <script src="js/landing_page.js"></script>
 </body>
 </html>
