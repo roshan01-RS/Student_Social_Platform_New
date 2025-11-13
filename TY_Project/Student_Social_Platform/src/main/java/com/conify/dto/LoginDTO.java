@@ -1,7 +1,7 @@
 package com.conify.dto;
 
 public class LoginDTO {
-    // FIXED: Changed 'email' to 'identifier' to match the frontend
+    // FIXED: This MUST be "identifier" to match your frontend
     private String identifier;
     private String password;
 

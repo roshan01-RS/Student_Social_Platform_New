@@ -2,7 +2,7 @@ package com.conify.model;
 
 import jakarta.persistence.*;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.LocalDate; // <-- NEW IMPORT
 
 @Entity
 @Table(name = "users")
@@ -21,9 +21,12 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
     
-    // --- NEW FIELD ADDED ---
     @Column(name = "school_name")
     private String schoolName;
+    
+    // --- NEW FIELD ADDED ---
+    @Column(name = "birthday")
+    private LocalDate birthday;
 
     private String otp;
 
@@ -35,8 +38,13 @@ public class User {
 
     @Column(name = "registration_successful_at")
     private Timestamp registrationSuccessfulAt;
+    
+    @Column(name = "account_expire_date")
+    private Timestamp accountExpireDate;
 
-     // --- NEW FIELDS FOR FORGOT PASSWORD ---
+    @Column(name = "last_login_at")
+    private Timestamp lastLoginAt;
+
     @Column(name = "reset_token")
     private String resetToken;
 
@@ -52,10 +60,12 @@ public class User {
     public void setEmail(String email) { this.email = email; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    
-    // --- NEW Getter/Setter for schoolName ---
     public String getSchoolName() { return schoolName; }
     public void setSchoolName(String schoolName) { this.schoolName = schoolName; }
+    
+    // --- NEW Getter/Setter for birthday ---
+    public LocalDate getBirthday() { return birthday; }
+    public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
     
     public String getOtp() { return otp; }
     public void setOtp(String otp) { this.otp = otp; }
@@ -67,6 +77,10 @@ public class User {
     public void setRegistrationSuccessfulAt(Timestamp registrationSuccessfulAt) {
         this.registrationSuccessfulAt = registrationSuccessfulAt;
     }
+    public Timestamp getAccountExpireDate() { return accountExpireDate; }
+    public void setAccountExpireDate(Timestamp accountExpireDate) { this.accountExpireDate = accountExpireDate; }
+    public Timestamp getLastLoginAt() { return lastLoginAt; }
+    public void setLastLoginAt(Timestamp lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     public String getResetToken() { return resetToken; }
     public void setResetToken(String resetToken) { this.resetToken = resetToken; }
     public Timestamp getResetTokenExpiry() { return resetTokenExpiry; }

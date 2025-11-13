@@ -9,43 +9,81 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
+// --- NEW IMPORTS ---
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+// --- END NEW IMPORTS ---
+
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/forgot-password")
 public class ForgotPasswordController {
 
-    @Autowired private ForgotPasswordService forgotPasswordService;
+    @Autowired
+    private ForgotPasswordService forgotPasswordService;
 
+    // --- NO CHANGE TO THIS METHOD ---
     @PostMapping("/initiate")
-    public ResponseEntity<?> initiate(@RequestBody ForgotPasswordDTO dto) {
+    public ResponseEntity<Map<String, String>> initiateReset(@RequestBody ForgotPasswordDTO dto) {
         try {
-            forgotPasswordService.initiateForgotPassword(dto.getEmail());
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Reset code sent if email exists."));
+            forgotPasswordService.initiateReset(dto);
+            return ResponseEntity.ok(Map.of("status", "success", "message", "OTP sent to your email."));
         } catch (Exception e) {
-             // For security, don't always reveal if email exists, but for now we will:
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 
+    // --- FIXED: This method now sets the cookie ---
     @PostMapping("/verify")
-    public ResponseEntity<?> verify(@RequestBody VerifyDTO dto) {
+    public ResponseEntity<Map<String, String>> verifyOtp(@RequestBody VerifyDTO dto, HttpServletResponse httpResponse) {
         try {
-            forgotPasswordService.verifyResetOtp(dto.getEmail(), dto.getOtp());
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Code verified."));
+            forgotPasswordService.verifyResetOtp(dto);
+            
+            // 1. Create a secure, HttpOnly cookie for the reset token (the OTP)
+            Cookie cookie = new Cookie("pwResetToken", dto.getOtp());
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(5 * 60); // 5 minute expiry
+            // cookie.setSecure(true); // Uncomment in production (HTTPS)
+            
+            // 2. Add the cookie to the response
+            httpResponse.addCookie(cookie);
+
+            return ResponseEntity.ok(Map.of("status", "success", "message", "OTP verified."));
+            
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 
+    // --- FIXED: This method now reads the cookie ---
     @PostMapping("/reset")
-    public ResponseEntity<?> reset(@RequestBody ResetPasswordDTO dto) {
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @RequestBody ResetPasswordDTO dto, 
+            @CookieValue(name = "pwResetToken", required = false) String token,
+            HttpServletResponse httpResponse) {
+        
         try {
-            forgotPasswordService.resetPassword(dto);
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Password changed successfully."));
+            if (token == null) {
+                throw new Exception("No reset token found. Please verify your OTP again.");
+            }
+
+            // 1. Pass the token and new password to the service
+            forgotPasswordService.resetPassword(token, dto.getNewPassword());
+
+            // 2. Clear the cookie upon success
+            Cookie cookie = new Cookie("pwResetToken", null);
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(0);
+            // cookie.setSecure(true); // Uncomment in production
+            httpResponse.addCookie(cookie);
+
+            return ResponseEntity.ok(Map.of("status", "success", "message", "Password has been reset successfully."));
+            
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 }

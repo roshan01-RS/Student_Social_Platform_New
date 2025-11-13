@@ -11,17 +11,17 @@ import java.sql.Timestamp;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
     
-    // --- Methods for other services ---
     boolean existsByEmail(String email);
     boolean existsByUsername(String username);
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
+    
+    Optional<User> findByEmailIgnoreCase(String email);
+    Optional<User> findByUsernameIgnoreCase(String username);
 
-    // --- FIXED: This is the ONLY method LoginService needs ---
-    // It finds a user where the identifier matches EITHER the email OR the username,
-    // ignoring case for both.
-    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:identifier) OR LOWER(u.username) = LOWER(:identifier)")
-    Optional<User> findByEmailOrUsernameIgnoreCase(@Param("identifier") String identifier);
+    // --- NEW METHOD ADDED ---
+    // This allows the reset service to find the user by their OTP/token
+    Optional<User> findByResetToken(String resetToken);
 
     void deleteByIsVerifiedAndOtpCreatedAtBefore(Integer isVerified, Timestamp expiryTime);
 }

@@ -1,6 +1,6 @@
 /* =========================================
-   1. GLOBAL VARIABLES & RESETS
-   ========================================= */
+    1. GLOBAL VARIABLES & RESETS
+    ========================================= */
 :root {
     --primary-color: #000000;
     --bright-cyan: #00f0ff;
@@ -25,6 +25,7 @@
 
 html {
     scroll-behavior: smooth;
+    font-size: 62.5%;
 }
 
 body {
@@ -32,7 +33,10 @@ body {
     background-color: var(--light-bg);
     color: var(--text-primary);
     overflow-x: hidden;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 1.6rem;
+    /* This transition is safe, as opacity is not set to 0 */
+    transition: opacity 0.5s ease-in-out;
 }
 
 .no-scroll {
@@ -40,16 +44,53 @@ body {
 }
 
 /* =========================================
-   2. UTILITY CLASSES
-   ========================================= */
+    1.5 PRELOADER
+    ========================================= */
+#preloader {
+    position: fixed;
+    inset: 0;
+    background: #ffffff;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+    opacity: 1;
+    visibility: visible;
+}
+
+#preloader.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.spinner {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    border: 5px solid #e0e0e0;
+    border-top-color: var(--bright-purple);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+
+/* =========================================
+    2. UTILITY CLASSES
+    ========================================= */
 .min-h-screen { min-height: 100vh; }
 .bg-white { background-color: white; }
-.w-4 { width: 1rem; }
-.h-4 { height: 1rem; }
-.w-6 { width: 1.5rem; }
-.h-6 { height: 1.5rem; }
+.w-4 { width: 1.6rem; }
+.h-4 { height: 1.6rem; }
+.w-6 { width: 2.4rem; }
+.h-6 { height: 2.4rem; }
 
-/* Icon Utility */
 .icon-svg {
     display: inline-block;
     width: 1em;
@@ -59,8 +100,8 @@ body {
 }
 
 /* =========================================
-   3. NAVIGATION
-   ========================================= */
+    3. NAVIGATION
+    ========================================= */
 .navbar {
     position: fixed;
     top: 0; left: 0; right: 0;
@@ -72,26 +113,26 @@ body {
 }
 
 .nav-container {
-    max-width: 1280px;
+    max-width: 1024px;
     margin: 0 auto;
-    padding: 0 1rem;
+    padding: 0 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 64px;
+    height: 6.4rem;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
 .logo-icon {
-    width: 40px;
-    height: 40px;
+    width: 4rem;
+    height: 4rem;
     background: linear-gradient(135deg, var(--bright-cyan), var(--bright-pink));
-    border-radius: 12px;
+    border-radius: 1.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -101,18 +142,19 @@ body {
 }
 
 .logo-text {
-    font-size: 1.5rem;
+    font-size: 2.4rem;
     font-weight: 600;
     color: var(--dark-color);
 }
 
 .nav-links {
     display: none;
-    gap: 2rem;
+    gap: 2.5rem;
     align-items: center;
 }
 
 .nav-links a {
+    font-size: 1.6rem;
     color: var(--text-secondary);
     text-decoration: none;
     transition: color 0.3s;
@@ -130,10 +172,11 @@ body {
 }
 
 /* =========================================
-   4. BUTTONS
-   ========================================= */
+    4. BUTTONS
+    ========================================= */
 .btn {
-    padding: 0.625rem 1.5rem;
+    padding: 1rem 1.8rem;
+    font-size: 1.5rem;
     border-radius: 8px;
     font-weight: 500;
     cursor: pointer;
@@ -176,8 +219,8 @@ body {
 }
 
 .btn-large {
-    padding: 1rem 2rem;
-    font-size: 1.125rem;
+    padding: 1.2rem 2.4rem;
+    font-size: 1.6rem;
 }
 
 .btn-outline {
@@ -191,19 +234,18 @@ body {
 }
 
 /* =========================================
-   5. LANDING PAGE SECTIONS
-   ========================================= */
-/* Hero */
+    5. LANDING PAGE SECTIONS
+    ========================================= */
 .hero {
-    padding-top: 8rem;
-    padding-bottom: 5rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-top: clamp(8rem, 18vw, 12rem);
+    padding-bottom: clamp(4rem, 10vw, 6rem);
+    padding-left: 2rem;
+    padding-right: 2rem;
     overflow: hidden;
 }
 
 .hero-container {
-    max-width: 1280px;
+    max-width: 1024px;
     margin: 0 auto;
     display: grid;
     grid-template-columns: 1fr;
@@ -212,24 +254,26 @@ body {
 }
 
 .hero-title {
-    font-size: 3rem;
-    line-height: 1.1;
-    margin-bottom: 1.5rem;
+    font-size: clamp(3.2rem, 5vw, 4.8rem);
+    line-height: 1.2;
+    margin-bottom: 2rem;
     color: var(--dark-color);
     font-weight: 800;
 }
 
 .hero-description {
-    font-size: 1.25rem;
+    font-size: clamp(1.6rem, 2.5vw, 1.8rem);
     color: var(--text-secondary);
-    margin-bottom: 2rem;
-    line-height: 1.6;
+    margin-bottom: 3rem;
+    line-height: 1.7;
+    max-width: 60ch;
 }
 
 .hero-buttons {
     display: flex;
+    flex-wrap: wrap;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
     margin-bottom: 3rem;
 }
 
@@ -237,21 +281,19 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 2rem;
 }
 
 .hero-gif {
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     height: auto;
     border-radius: 24px;
     animation: float-gif 3s ease-in-out infinite;
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
 
-/* Features */
 .features-section {
-    padding: 5rem 1rem;
+    padding: clamp(4rem, 12vw, 8rem) 2rem;
     background: #000000;
     position: relative;
     overflow: hidden;
@@ -269,7 +311,7 @@ body {
 }
 
 .features-container {
-    max-width: 1280px;
+    max-width: 1024px;
     margin: 0 auto;
     position: relative;
     z-index: 2;
@@ -281,13 +323,15 @@ body {
 }
 
 .section-title {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: clamp(2.8rem, 5vw, 4rem);
+    margin-bottom: 1.5rem;
     font-weight: 700;
-    color: var(--dark-color);
+    color: var(--dark-color); /* Black text */
+    line-height: 1.2;
 }
 
 .features-section .section-title {
+    /* Gradient text for features section */
     background: linear-gradient(135deg, var(--bright-cyan), var(--bright-pink), var(--bright-yellow));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -296,10 +340,11 @@ body {
 }
 
 .section-description {
-    font-size: 1.25rem;
+    font-size: clamp(1.6rem, 2.5vw, 1.8rem);
     color: var(--text-secondary);
-    max-width: 42rem;
+    max-width: 60ch;
     margin: 0 auto;
+    line-height: 1.7;
 }
 .features-section .section-description { color: #cccccc; }
 
@@ -313,7 +358,7 @@ body {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 2rem;
+    padding: 2.5rem;
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.4s ease;
@@ -329,8 +374,8 @@ body {
 
 .feature-gif-wrapper {
     width: 100%;
-    max-width: 180px;
-    height: 180px;
+    max-width: 150px;
+    height: 150px;
     margin: 0 auto 1.5rem;
     display: flex;
     align-items: center;
@@ -347,8 +392,8 @@ body {
 }
 
 .feature-title {
-    font-size: 1.5rem;
-    margin-bottom: 0.75rem;
+    font-size: 2.2rem;
+    margin-bottom: 1rem;
     color: white;
     font-weight: 700;
     display: flex;
@@ -356,17 +401,19 @@ body {
 }
 
 .feature-title .icon-svg {
-    margin-right: 0.75rem;
+    margin-right: 1rem;
     color: var(--bright-cyan);
+    width: 2.4rem;
+    height: 2.4rem;
 }
 
 .feature-description {
     color: #cccccc;
     line-height: 1.6;
+    font-size: 1.5rem;
 }
 
-/* How It Works */
-.how-it-works { padding: 5rem 1rem; }
+.how-it-works { padding: clamp(4rem, 12vw, 8rem) 2rem; }
 
 .steps-grid {
     display: grid;
@@ -378,32 +425,38 @@ body {
 .step-item { text-align: center; }
 
 .step-number {
-    width: 64px; height: 64px;
+    width: 6.4rem; height: 6.4rem;
     background: linear-gradient(135deg, var(--bright-cyan), var(--bright-pink));
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     color: white;
-    font-size: 1.5rem;
+    font-size: 2.4rem;
     font-weight: bold;
     margin: 0 auto 1.5rem;
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 .step-title {
-    font-size: 1.25rem;
-    margin-bottom: 0.75rem;
+    font-size: 2rem;
+    margin-bottom: 1rem;
     color: var(--dark-color);
     font-weight: 600;
 }
 
-/* CTA */
-.cta-section { padding: 5rem 1rem; }
-.cta-container { max-width: 56rem; margin: 0 auto; }
+.step-description {
+    font-size: 1.6rem;
+}
+
+.cta-section { padding: clamp(4rem, 12vw, 8rem) 2rem; }
+.cta-container { 
+    max-width: 1024px;
+    margin: 0 auto; 
+}
 
 .cta-box {
     background: linear-gradient(135deg, var(--bright-pink), var(--bright-purple));
     border-radius: 24px;
-    padding: 3rem 2rem;
+    padding: clamp(3rem, 8vw, 6rem);
     text-align: center;
     color: white;
     box-shadow: 0 25px 50px -12px rgba(255, 0, 110, 0.3);
@@ -411,57 +464,62 @@ body {
 }
 
 .cta-title {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
+    font-size: clamp(2.4rem, 5vw, 3.2rem);
+    margin-bottom: 1.5rem;
     font-weight: 700;
     color: white;
+    line-height: 1.2;
 }
 
 .cta-description {
-    font-size: 1.25rem;
+    font-size: clamp(1.6rem, 2.5vw, 1.8rem);
     color: rgba(255, 255, 255, 0.9);
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
 }
 
 .cta-buttons {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.5rem;
     justify-content: center;
 }
 
-/* Footer */
 .footer {
     background: var(--dark-color);
     color: white;
-    padding: 4rem 1rem 2rem;
+    padding: 6rem 2rem 3rem;
     text-align: center;
 }
 
-.footer-container { max-width: 1280px; margin: 0 auto; }
+.footer-container { 
+    max-width: 1024px;
+    margin: 0 auto; 
+}
 
 .footer-brand {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .footer-brand p {
     color: #9ca3af;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
+    font-size: 1.5rem;
+    max-width: 40ch;
 }
 
 .footer-bottom {
     border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 2rem;
+    padding-top: 2.5rem;
     color: #6b7280;
-    font-size: 0.875rem;
+    font-size: 1.4rem;
 }
 
 /* =========================================
-   6. AUTH MODALS & FORMS
-   ========================================= */
+    6. AUTH MODALS & FORMS (SHRUNK)
+    ========================================= */
 .auth-modal-backdrop {
     position: fixed;
     inset: 0;
@@ -469,8 +527,6 @@ body {
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    
-    /* Default hidden state */
     display: none; 
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
@@ -479,7 +535,6 @@ body {
     padding: 1rem;
 }
 
-/* JS toggles display:flex, then this class for opacity */
 .auth-modal-backdrop.show {
     opacity: 1;
 }
@@ -492,12 +547,16 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 24px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
     color: white;
-    
     transform: translateY(30px) scale(0.95);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 90vh;
+    overflow-y: auto;
 }
+
+.auth-modal::-webkit-scrollbar { display: none; }
+.auth-modal { scrollbar-width: none; }
+
 
 .auth-modal-backdrop.show .auth-modal {
     transform: translateY(0) scale(1);
@@ -518,19 +577,20 @@ body {
     background: transparent;
     border: none;
     box-shadow: none;
-    padding: 2.5rem 2rem;
+    padding: 2rem 2.5rem;
 }
 
 .auth-modal-close-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 1.5rem;
+    right: 1.5rem;
     width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center;
+    justify-content: center;
     color: rgba(255, 255, 255, 0.6);
     background: transparent;
     border: none;
-    font-size: 1.5rem;
+    font-size: 2.4rem;
     cursor: pointer;
     z-index: 10;
     border-radius: 50%;
@@ -544,11 +604,11 @@ body {
 /* Form Elements */
 .auth-modal .header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
 }
 
 .auth-modal .header h1 {
-    font-size: 1.875rem;
+    font-size: 2.4rem;
     font-weight: 700;
     color: white;
     margin-bottom: 0.5rem;
@@ -556,30 +616,30 @@ body {
 
 .auth-modal .header p {
     color: #9ca3af;
+    font-size: 1.5rem;
 }
 
-/* FIXED: Centered red login error message */
 .login-message {
     text-align: center;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     font-weight: 500;
     color: var(--error-red);
+    font-size: 1.5rem;
 }
 
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.2rem;
 }
 
-/* Wrapper for school search to contain dropdown */
 .school-search-wrapper {
     position: relative;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.6rem;
     font-weight: 500;
-    font-size: 0.95rem;
+    font-size: 1.4rem;
     color: #e5e7eb;
 }
 
@@ -589,102 +649,87 @@ body {
 
 .input-icon {
     position: absolute;
-    left: 1rem;
+    left: 1.2rem;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
     pointer-events: none;
     transition: color 0.2s;
-    width: 20px; /* Explicit size */
-    height: 20px; /* Explicit size */
+    width: 1.8rem;
+    height: 1.8rem;
 }
 
-/* FIXED: Password Toggle Icon Styles */
 .password-toggle {
-    left: auto; /* Remove left positioning */
-    right: 1rem; /* Position on the right */
-    pointer-events: auto; /* Make it clickable */
+    left: auto;
+    right: 1.2rem;
+    pointer-events: auto;
     cursor: pointer;
     color: #9ca3af;
-    /* This makes <img> tags work like the SVG did */
     filter: grayscale(1) invert(0.7); 
-    width: 20px;
-    height: 20px;
+    width: 1.8rem;
+    height: 1.8rem;
+    transition: filter 0.2s;
 }
-/* Style for when password is VISIBLE */
-.password-toggle.is-visible {
-    filter: grayscale(1) invert(0.7) opacity(0.5); /* Make it look "off" */
-}
-.password-toggle:hover {
-    color: white;
-    filter: none;
-}
+.password-toggle.is-visible { filter: none; }
+.password-toggle:hover { filter: none; }
 
-/* ADDED: Clear button for school input */
 .clear-search {
     position: absolute;
-    right: 1rem;
+    right: 1.2rem;
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
     cursor: pointer;
-    font-size: 1.5rem;
+    font-size: 2.2rem;
     font-weight: bold;
     line-height: 1;
     background: none;
     border: none;
     padding: 0;
-    z-index: 3; /* Above input */
+    z-index: 3;
 }
-.clear-search:hover {
-    color: white;
-}
+.clear-search:hover { color: white; }
 
 
 .auth-modal input[type="text"],
 .auth-modal input[type="email"] {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 3rem; /* 3rem left for icon */
+    padding: 1rem 1.2rem 1rem 3.6rem; 
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
-    font-size: 1rem;
+    font-size: 1.5rem;
     outline: none;
     transition: all 0.2s;
 }
 
-/* Make school input padding match email */
 #school_search {
-    padding: 0.75rem 3rem 0.75rem 3rem; /* Padding for icon AND clear button */
+    padding: 1rem 3.6rem 1rem 3.6rem;
 }
 
 
-/* FIXED: Specific padding for password fields */
 .auth-modal input[type="password"] {
     width: 100%;
-    /* 3rem left for lock, 3rem right for eye */
-    padding: 0.75rem 3rem 0.75rem 3rem; 
+    padding: 1rem 3.6rem 1rem 3.6rem; 
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
+    border-radius: 10px;
     color: white;
-    font-size: 1rem;
+    font-size: 1.5rem;
     outline: none;
     transition: all 0.2s;
 }
 
-/* Login/Forgot/Reset form inputs (no left icon) */
 #loginForm input[type="text"],
 #loginForm input[type="password"],
 #forgotForm input[type="email"],
 #resetForm input[type="password"] {
-    padding-left: 1rem; /* Override for login */
+    padding-left: 1.2rem;
 }
-/* These password fields still need right padding for eye */
 #loginForm input[type="password"],
 #resetForm input[type="password"] {
-    padding-right: 3rem; 
+    padding-right: 3.6rem; 
 }
 
 
@@ -693,7 +738,6 @@ body {
     box-shadow: 0 0 0 3px rgba(181, 55, 242, 0.15);
 }
 
-/* FIXED: Added red border for error state */
 .auth-modal input.error {
     border-color: var(--error-red) !important;
 }
@@ -704,18 +748,18 @@ body {
 
 .submit-btn {
     width: 100%;
-    padding: 0.875rem;
+    padding: 1.2rem;
     background: linear-gradient(to right, var(--bright-purple), var(--bright-pink));
     color: white;
     border: none;
-    border-radius: 12px;
-    font-size: 1rem;
+    border-radius: 10px;
+    font-size: 1.5rem;
     font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.8rem;
     transition: opacity 0.2s, transform 0.2s;
 }
 .submit-btn:disabled {
@@ -728,9 +772,9 @@ body {
 }
 
 .form-footer {
-    margin-top: 1.5rem;
+    margin-top: 1.2rem;
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 1.4rem;
     color: #9ca3af;
     display: flex;
     flex-direction: column;
@@ -744,29 +788,27 @@ body {
 }
 .form-footer a:hover { text-decoration: underline; }
 
-/* ADDED: School Suggestions Dropdown */
 .autocomplete-results {
     position: absolute;
     width: 100%;
     max-height: 200px;
-    overflow-y: auto; /* FIXED: Added scrollbar */
-    background: #3a3a4c; /* Darker dropdown bg */
+    overflow-y: auto;
+    background: #2b2d3d;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-top: none;
     border-radius: 0 0 12px 12px;
-    z-index: 1000; /* Make sure it's on top */
+    z-index: 1000;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
 }
 .autocomplete-item {
-    padding: 0.75rem 1rem;
+    padding: 1.2rem 1.5rem;
     cursor: pointer;
     color: #e5e7eb;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    font-size: 0.9rem;
+    font-size: 1.5rem;
 }
-.autocomplete-item:last-child {
-    border-bottom: none;
-}
-.autocomplete-item:hover {
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.selected {
     background: var(--bright-purple);
     color: white;
 }
@@ -774,7 +816,7 @@ body {
 
 /* OTP Specifics */
 .otp-icon {
-    width: 64px; height: 64px;
+    width: 6.4rem; height: 6.4rem;
     margin: 0 auto 1.5rem;
     background: rgba(181, 55, 242, 0.1);
     border-radius: 50%;
@@ -784,28 +826,26 @@ body {
 
 .otp-inputs {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
     justify-content: center;
-    margin: 1.5rem 0;
+    margin: 2rem 0;
 }
 
 .otp-input {
-    width: 3.5rem !important;
-    height: 3.5rem;
-    padding: 0 !important; /* Remove all padding */
+    width: 4rem !important;
+    height: 4.5rem !important;
+    padding: 0 !important;
     text-align: center;
-    font-size: 1.5rem;
+    font-size: 2rem;
     border-radius: 12px !important;
-    /* FIXED: Added white border style */
     border: 1px solid rgba(255, 255, 255, 0.4) !important;
-    background: rgba(0, 0, 0, 0.2) !important; /* Match other inputs */
-    color: white !important; /* Match other inputs */
+    background: rgba(0, 0, 0, 0.2) !important;
+    color: white !important;
 }
 .otp-input:focus {
     border-color: var(--bright-purple) !important;
     box-shadow: 0 0 0 3px rgba(181, 55, 242, 0.15) !important;
 }
-/* FIXED: Red border for OTP error */
 .otp-input.error {
     border-color: var(--error-red) !important;
 }
@@ -814,12 +854,14 @@ body {
 .email-display {
     color: var(--bright-cyan);
     font-weight: 500;
+    font-size: 1.6rem;
 }
 
 .otp-resend {
     text-align: center;
-    margin-top: 1.5rem;
+    margin-top: 2rem;
     color: #9ca3af;
+    font-size: 1.5rem;
 }
 
 .resend-btn {
@@ -830,10 +872,9 @@ body {
     padding: 0.5rem;
     display: inline-flex; align-items: center; gap: 0.5rem;
     transition: color 0.2s;
+    font-size: 1.5rem;
 }
-.resend-btn:hover {
-    color: var(--bright-pink);
-}
+.resend-btn:hover { color: var(--bright-pink); }
 .resend-btn:disabled {
     color: #6b7280;
     cursor: not-allowed;
@@ -842,17 +883,17 @@ body {
 
 /* Form Validation & Messages */
 .error-message, .help-text {
-    font-size: 0.8rem;
-    margin-top: 0.4rem;
+    font-size: 1.3rem;
+    margin-top: 0.6rem;
     display: block;
 }
-.help-text { color: #9ca3af; display: none; } /* Hide help text */
+.help-text { color: #9ca3af; display: none; }
 .error-message { color: var(--error-red); display: none; }
-.error-message.show { display: block; } /* Use block instead of flex */
+.error-message.show { display: block; }
 
 /* Password Strength */
 .password-strength {
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
     display: none;
 }
 .strength-bar {
@@ -870,19 +911,86 @@ body {
 .strength-bar.strong { background-color: var(--success-green); }
 
 .strength-value {
-    font-size: 0.8rem;
+    font-size: 1.2rem;
     text-align: right;
-    color: white; /* Make text visible */
+    color: white;
 }
 .strength-value.weak { color: var(--error-red); }
 .strength-value.fair { color: var(--bright-orange); }
 .strength-value.good { color: var(--bright-yellow); }
 .strength-value.strong { color: var(--success-green); }
 
+/* --- Birthday Modal Styles --- */
+.birthday-icon-wrapper {
+    width: 6.4rem;
+    height: 6.4rem;
+    margin: 0 auto 1.5rem;
+    background: rgba(181, 55, 242, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--bright-purple);
+}
+.birthday-icon-wrapper svg {
+    width: 3.2rem;
+    height: 3.2rem;
+}
+
+.age-calculator {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1.5rem;
+    background: rgba(0,0,0,0.2);
+    padding: 1rem;
+    border-radius: 8px;
+}
+.age-calculator #age-display {
+    color: var(--bright-cyan);
+    min-width: 3ch;
+    display: inline-block;
+}
+
+.birthday-inputs {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+.bday-select {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: white;
+    font-size: 1.5rem;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%239ca3af' fill-opacity='0.7'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.06z' clip-rule='evenodd' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.5em 1.5em;
+    /* FIX: REMOVED 'color-scheme: dark'. 
+      This will force the browser to use its default LIGHT dropdown
+      (white background, black text), which is readable.
+    */
+}
+.bday-select:focus {
+    border-color: var(--bright-purple);
+    box-shadow: 0 0 0 3px rgba(181, 55, 242, 0.15);
+}
+#birthday-error.show {
+    text-align: center;
+}
+
 
 /* =========================================
-   7. NOTIFICATIONS
-   ========================================= */
+    7. NOTIFICATIONS
+    ========================================= */
 #notification-container {
     position: fixed;
     top: 20px;
@@ -893,14 +1001,14 @@ body {
     flex-direction: column;
     gap: 10px;
     align-items: center;
-    width: 100%;
+    width: 90%;
     max-width: 400px;
     pointer-events: none;
 }
 
 .notification-box {
     pointer-events: auto;
-    padding: 12px 24px;
+    padding: 1.2rem 2.4rem;
     border-radius: 12px;
     background: #1f2937;
     color: white;
@@ -910,10 +1018,10 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    
     opacity: 0;
     transform: translateY(-20px);
     transition: opacity 0.3s ease, transform 0.3s ease;
+    font-size: 1.5rem;
 }
 
 .notification-box.show {
@@ -931,50 +1039,75 @@ body {
 }
 
 /* =========================================
-   8. KEYFRAME ANIMATIONS
-   ========================================= */
+    8. KEYFRAME ANIMATIONS
+    ========================================= */
 @keyframes glow {
     0%, 100% { box-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
     50% { box-shadow: 0 0 20px rgba(255, 0, 110, 0.8); }
 }
-
 @keyframes shine {
     0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
     100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
 }
-
 @keyframes float-gif {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-20px); }
 }
-
 @keyframes glow-cta {
     0%, 100% { box-shadow: 0 25px 50px -12px rgba(255, 0, 110, 0.3); }
     50% { box-shadow: 0 35px 60px -12px rgba(0, 240, 255, 0.5); }
 }
 
 /* =========================================
-   9. MEDIA QUERIES (RESPONSIVE)
-   ========================================= */
+    9. MEDIA QUERIES (RESPONSIVE)
+    ========================================= */
+@media (min-width: 640px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hero-buttons {
+        flex-direction: row;
+    }
+    .cta-buttons {
+        flex-direction: row;
+    }
+}
+
 @media (min-width: 768px) {
     .nav-links { display: flex; }
-    .hero-buttons { flex-direction: row; }
-    .features-grid { grid-template-columns: repeat(2, 1fr); }
-    .steps-grid { grid-template-columns: repeat(3, 1fr); }
-    .cta-buttons { flex-direction: row; }
+    .steps-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .btn {
+        padding: 0.8rem 1.6rem;
+        font-size: 1.4rem;
+    }
+    .btn-large {
+        padding: 1rem 2rem;
+        font-size: 1.5rem;
+    }
 }
 
 @media (min-width: 1024px) {
-    .hero-container { grid-template-columns: 1.2fr 0.8fr; }
-    .hero-title { font-size: 3.75rem; }
-}
-
-@media (max-width: 640px) {
-    .auth-modal {
-        max-width: 95vw;
-        border-radius: 20px;
+    .hero-container {
+        grid-template-columns: 1.2fr 1fr;
+        gap: 5rem;
     }
-    .auth-modal .card { padding: 2rem 1.5rem; }
-    .otp-input { width: 3rem !important; height: 3rem; font-size: 1.25rem; }
-    .hero-title { font-size: 2.5rem; }
 }
+.offline-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1rem;
+            /* Ensure it fills the screen */
+            height: 100vh;
+        }
+        .offline-icon {
+             width: 80px;
+             height: 80px;
+             margin-bottom: 1.5rem;
+             /* This makes your SVG white */
+             filter: invert(1) grayscale(1) brightness(2);
+        }

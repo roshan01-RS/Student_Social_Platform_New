@@ -1,34 +1,57 @@
+// --- NEW PRELOADER LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const preloader = document.getElementById('preloader');
+    if (preloader) {
+        preloader.classList.add('fade-out');
+    }
+    document.body.classList.add('loaded');
+});
+
 window.addEventListener('load', () => {
-    // This wrapper guarantees execution only after all HTML and scripts (including colleges.js) are fully loaded.
     initializeLandingPage(); 
 });
 
 function initializeLandingPage() {
-    console.log("✅ landing_page.js loaded");
+    console.log("✅ landing_page.js initialized");
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/service_work.js') 
+        .then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        })
+        .catch(error => {
+          console.log('ServiceWorker registration failed: ', error);
+        });
+    }
 
     // =========================================
     // 1. GLOBAL CONFIG & STATE
     // =========================================
     const API_BASE = 'http://localhost:8000';
-    // Public API for school search (We combine this with local list)
     const SCHOOL_API_URL = 'http://universities.hipolabs.com/search?'; 
     
     const ENDPOINTS = {
         LOGIN: `${API_BASE}/api/login`,
+        LOGOUT: `${API_BASE}/api/logout`,
         REGISTER: `${API_BASE}/api/register`,
         VERIFY: `${API_BASE}/api/verify`,
         RESEND_OTP: `${API_BASE}/api/resend-otp`,
         FORGOT_PASSWORD: `${API_BASE}/api/forgot-password/initiate`,
         VERIFY_RESET_OTP: `${API_BASE}/api/forgot-password/verify`,
-        RESET_PASSWORD: `${API_BASE}/api/forgot-password/reset`
+        RESET_PASSWORD: `${API_BASE}/api/forgot-password/reset`,
+        CHECK_USER: `${API_BASE}/api/check-user` 
     };
 
     let pendingEmail = localStorage.getItem('pendingEmail') || '';
     let otpContext = 'signup';
-    let verifiedOtpToken = '';
+    // REMOVED: let verifiedOtpToken = '';
     
     let selectedSchoolDomain = null;
     let isSchoolSelected = false; 
+
+    // ... (MODAL, EVENT LISTENER, NOTIFICATION, and FORM HELPER functions are all unchanged) ...
+    // ... (Skipping them for brevity, but they are still here) ...
+
 
     // =========================================
     // 2. CENTRAL MODAL MANAGEMENT
@@ -61,6 +84,11 @@ function initializeLandingPage() {
         const targetModal = modals[modalName];
         if (!targetModal) return;
 
+        if (modalName === 'signup') {
+            document.getElementById('signupStep1').style.display = 'block';
+            document.getElementById('signupStep2').style.display = 'none';
+        }
+
         Object.values(modals).forEach(m => {
             if (m && m !== targetModal) {
                 m.classList.remove('show');
@@ -69,7 +97,7 @@ function initializeLandingPage() {
         });
 
         targetModal.style.display = 'flex';
-        void targetModal.offsetWidth; // Force Reflow
+        void targetModal.offsetWidth;
         targetModal.classList.add('show');
         body.classList.add("no-scroll");
 
@@ -77,7 +105,7 @@ function initializeLandingPage() {
     }
 
     // =========================================
-    // 3. UNIFIED EVENT LISTENER (NAVIGATION & TOGGLES)
+    // 3. UNIFIED EVENT LISTENER
     // =========================================
     document.addEventListener('click', (e) => {
         const target = e.target;
@@ -89,7 +117,6 @@ function initializeLandingPage() {
             e.preventDefault();
             closeAllModals();
         }
-        // Password toggle logic (using single image + class toggle)
         else if (target.closest('.js-toggle-password')) {
             e.preventDefault();
             const icon = target.closest('.js-toggle-password');
@@ -107,7 +134,6 @@ function initializeLandingPage() {
                 }
             }
         }
-        // Clear school input
         else if (target.closest('.js-clear-school')) {
             e.preventDefault();
             clearSchoolSelection();
@@ -136,12 +162,12 @@ function initializeLandingPage() {
         
         setTimeout(() => {
             note.classList.remove('show');
-            setTimeout(() => note.remove(), 300);
+            setTimeout(() => note.remove(), 3000);
         }, 3000);
     }
 
     // =========================================
-    // 5. FORM HELPERS (Errors, Password, Validation)
+    // 5. FORM HELPERS
     // =========================================
     const setInputError = (input, msg) => {
         if (!input) return;
@@ -187,7 +213,6 @@ function initializeLandingPage() {
         bar.style.width = `${(index + 1) * 20}%`;
     };
 
-    // --- Validation functions ---
     const validateUsername = (username) => {
         if (!username) return 'Username is required';
         if (!/^[a-zA-Z0-9_-]{3,20}$/.test(username))
@@ -198,24 +223,21 @@ function initializeLandingPage() {
     const validateEmail = (email) => {
         if (!email) return 'Email is required';
         
-        // 1. Check against @gmail.com (default)
         if (email.endsWith('@gmail.com')) {
             const emailRegex = /^[a-zA-Z0-9._-]+@gmail\.com$/;
             if (emailRegex.test(email)) {
-                 return null; // Valid
+                 return null;
             }
         }
         
-        // 2. Check against selected school domain
         if (selectedSchoolDomain) {
             const domainRegex = new RegExp(`^[a-zA-Z0-9._-]+@${selectedSchoolDomain.replace(/\./g, '\\.')}$`);
             if (domainRegex.test(email)) {
-                return null; // Valid
+                return null;
             }
             return `Must be @gmail.com or @${selectedSchoolDomain}`;
         }
         
-        // 3. If no school selected and not @gmail.com, show default error
         return 'Must be a valid @gmail.com address';
     };
     
@@ -237,7 +259,7 @@ function initializeLandingPage() {
     };
 
     // =========================================
-    // 6. SIGNUP LOGIC (WITH SCHOOLS)
+    // 6. SIGNUP LOGIC
     // =========================================
     const signupForm = document.getElementById('signupForm');
     const usernameInput = document.getElementById('username_signup');
@@ -248,7 +270,6 @@ function initializeLandingPage() {
     const schoolSuggestions = document.getElementById('school_results');
     const clearSchoolBtn = document.querySelector('.js-clear-school');
 
-    // Debounce function
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
@@ -257,18 +278,15 @@ function initializeLandingPage() {
         };
     }
 
-    // --- School Search Logic ---
     const searchSchools = debounce(async (query) => {
         if (query.length < 3) {
             schoolSuggestions.style.display = 'none';
             return;
         }
 
-        // 1. Search local list FIRST (FAST)
         const lowerQuery = query.toLowerCase();
         
         const localMatches = [];
-        // This is safe now because of window.onload
         const localColleges = (typeof ALL_LOCAL_COLLEGES !== 'undefined' ? ALL_LOCAL_COLLEGES : []);
         const seenNames = new Set();
         
@@ -279,14 +297,10 @@ function initializeLandingPage() {
             }
         }
         
-        renderSchoolSuggestions(localMatches); // Immediately show local results
+        renderSchoolSuggestions(localMatches);
 
-        // 2. Search API as fallback (Async)
         try {
-            const params = new URLSearchParams({
-                name: query,
-                country: 'India'
-            });
+            const params = new URLSearchParams({ name: query, country: 'India' });
             const response = await fetch(`${SCHOOL_API_URL}${params.toString()}`); 
             if (!response.ok) throw new Error('API failed');
             const data = await response.json();
@@ -296,7 +310,6 @@ function initializeLandingPage() {
                 domain: school.domains[0]
             })).filter(school => school.domain);
 
-            // Combine and de-duplicate
             const combined = [...localMatches];
             
             apiMatches.forEach(apiSchool => {
@@ -371,7 +384,6 @@ function initializeLandingPage() {
             setTimeout(() => { 
                 schoolSuggestions.style.display = 'none';
                 
-                // NEW: STRICT VALIDATION CHECK
                 if (schoolInput.value.trim() && !isSchoolSelected) {
                     showGlobalNotification("Please select your school from the list. Custom names are not allowed.", "error");
                     setInputError(schoolInput, "Select school from list");
@@ -404,7 +416,6 @@ function initializeLandingPage() {
         });
     }
 
-    // Live validation listeners
     if (usernameInput) {
         usernameInput.addEventListener('blur', () => {
             const error = validateUsername(usernameInput.value.trim());
@@ -429,36 +440,96 @@ function initializeLandingPage() {
             updatePasswordStrength(e.target.value);
         });
     }
+    
+    // --- Birthday Step Logic ---
+    const continueToBirthdayBtn = document.getElementById('continueToBirthdayBtn');
+    const backToStep1Btn = document.getElementById('backToStep1Btn');
+    const signupStep1 = document.getElementById('signupStep1');
+    const signupStep2 = document.getElementById('signupStep2');
+
+    if (continueToBirthdayBtn) {
+        continueToBirthdayBtn.addEventListener('click', async () => {
+            const userError = validateUsername(usernameInput.value.trim());
+            const emailError = validateEmail(emailInputSignup.value.trim());
+            const passError = validatePassword(passwordInputSignup.value);
+             
+            let schoolError = null;
+            if (schoolInput.value.trim() === '') {
+                schoolError = "School name is required.";
+            } else if (!isSchoolSelected) {
+                 schoolError = "Please select a school from the suggested list.";
+                 showGlobalNotification("Please select your school from the list. Custom names are not allowed.", "error");
+            }
+
+            if (userError) setInputError(usernameInput, userError);
+            if (emailError) setInputError(emailInputSignup, emailError);
+            if (passError) setInputError(passwordInputSignup, passError);
+            if (schoolError) setInputError(schoolInput, schoolError);
+
+            if (userError || emailError || passError || schoolError) {
+                return; 
+            }
+
+            const btn = continueToBirthdayBtn;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = 'Checking...';
+            
+            try {
+                const response = await fetch(ENDPOINTS.CHECK_USER, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: usernameInput.value.trim().toLowerCase(),
+                        email: emailInputSignup.value.trim().toLowerCase()
+                    })
+                });
+
+                if (response.ok) {
+                    signupStep1.style.display = 'none';
+                    signupStep2.style.display = 'block';
+                } else {
+                    const data = await response.json();
+                    if (data.message && data.message.toLowerCase().includes("username")) {
+                        setInputError(usernameInput, data.message);
+                    } else if (data.message && data.message.toLowerCase().includes("email")) {
+                        setInputError(emailInputSignup, data.message);
+                    } else {
+                        showGlobalNotification(data.message || 'An error occurred', 'error');
+                    }
+                }
+            } catch (err) {
+                showGlobalNotification('Server check failed. Please try again.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    }
+
+    if (backToStep1Btn) {
+        backToStep1Btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            signupStep2.style.display = 'none';
+            signupStep1.style.display = 'block';
+        });
+    }
 
     if (signupForm) {
-        // Validation check helper to avoid duplicate code
-        const validateAndDisplayErrors = () => {
-             const userError = validateUsername(usernameInput.value.trim());
-             const emailError = validateEmail(emailInputSignup.value.trim());
-             const passError = validatePassword(passwordInputSignup.value);
-             
-             let schoolError = null;
-             if (schoolInput.value.trim() && !isSchoolSelected) {
-                 schoolError = "Please select a school from the suggested list.";
-                 showGlobalNotification("Please select your school from the list. Custom names are not allowed.", "error"); // Global notification on submit
-             }
-
-             if (userError) setInputError(usernameInput, userError);
-             if (emailError) setInputError(emailInputSignup, emailError);
-             if (passError) setInputError(passwordInputSignup, passError);
-             if (schoolError) setInputError(schoolInput, schoolError);
-
-             return !userError && !emailError && !passError && !schoolError;
-        };
-
-
         signupForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const isValid = validateAndDisplayErrors();
-            if (!isValid) return;
+            const { age, birthdayString, error } = validateBirthday();
+            if (error) {
+                const bdayErrorSpan = document.getElementById('birthday-error');
+                if(bdayErrorSpan) {
+                    bdayErrorSpan.textContent = error;
+                    bdayErrorSpan.classList.add('show');
+                }
+                return;
+            }
 
-            const btn = signupForm.querySelector('button[type="submit"]');
+            const btn = signupForm.querySelector('#signupSubmitBtn');
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = 'Creating...';
@@ -468,11 +539,11 @@ function initializeLandingPage() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        username: usernameInput.value.trim().toLowerCase(), // Send lowercase
-                        email: emailInputSignup.value.trim().toLowerCase(), // Send lowercase
+                        username: usernameInput.value.trim().toLowerCase(),
+                        email: emailInputSignup.value.trim().toLowerCase(),
                         password: passwordInputSignup.value,
                         school: schoolInput.value.trim(),
-                        schoolDomain: selectedSchoolDomain 
+                        birthday: birthdayString
                     })
                 });
                 const data = await response.json();
@@ -484,7 +555,17 @@ function initializeLandingPage() {
                     openModal('otp');
                     showGlobalNotification('Account created! Verify email.', 'success');
                 } else {
-                    showGlobalNotification(data.message || 'Signup failed', 'error');
+                    if (data.message && data.message.toLowerCase().includes("username")) {
+                        setInputError(usernameInput, data.message);
+                        signupStep2.style.display = 'none';
+                        signupStep1.style.display = 'block';
+                    } else if (data.message && data.message.toLowerCase().includes("email")) {
+                        setInputError(emailInputSignup, data.message);
+                        signupStep2.style.display = 'none';
+                        signupStep1.style.display = 'block';
+                    } else {
+                        showGlobalNotification(data.message || 'Signup failed', 'error');
+                    }
                 }
             } catch (err) {
                 showGlobalNotification('Server error', 'error');
@@ -494,9 +575,116 @@ function initializeLandingPage() {
             }
         });
     }
+    
+    
+    // =========================================
+    // 6.5. BIRTHDAY LOGIC
+    // =========================================
+    const monthSelect = document.getElementById('month-select');
+    const daySelect = document.getElementById('day-select');
+    const yearSelect = document.getElementById('year-select');
+    const ageDisplay = document.getElementById('age-display');
+    const birthdayError = document.getElementById('birthday-error');
+
+    const months = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    if (monthSelect) {
+        months.forEach((month, index) => {
+            monthSelect.options[monthSelect.options.length] = new Option(month, index + 1);
+        });
+    }
+    if (daySelect) {
+        for (let i = 1; i <= 31; i++) {
+            daySelect.options[daySelect.options.length] = new Option(i, i);
+        }
+    }
+    if (yearSelect) {
+        const currentYear = new Date().getFullYear();
+        for (let i = currentYear; i >= 1950; i--) {
+            yearSelect.options[yearSelect.options.length] = new Option(i, i);
+        }
+    }
+
+    function calculateAge() {
+        const month = monthSelect.value;
+        const day = daySelect.value;
+        const year = yearSelect.value;
+
+        if (birthdayError) birthdayError.classList.remove('show');
+
+        if (month && day && year) {
+            const birthDate = new Date(year, month - 1, day);
+            if (birthDate.getMonth() !== (month - 1)) {
+                ageDisplay.textContent = '--';
+                if(birthdayError) {
+                    birthdayError.textContent = 'Please enter a valid date.';
+                    birthdayError.classList.add('show');
+                }
+                return null;
+            }
+
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            ageDisplay.textContent = age;
+            
+            if (age < 11) {
+                 if(birthdayError) {
+                    birthdayError.textContent = 'You must be at least 11 years old.';
+                    birthdayError.classList.add('show');
+                }
+            }
+            
+            return age;
+        }
+        ageDisplay.textContent = '--';
+        return null;
+    }
+    
+    function validateBirthday() {
+        if(birthdayError) {
+            birthdayError.classList.remove('show');
+            birthdayError.textContent = '';
+        }
+
+        const month = monthSelect.value;
+        const day = daySelect.value;
+        const year = yearSelect.value;
+
+        if (!month || !day || !year) {
+            return { error: "Please enter your full date of birth." };
+        }
+
+        const age = calculateAge();
+        
+        if (age === null) {
+             return { error: "Please enter a valid date." };
+        }
+        
+        if (age < 11) {
+             return { error: "You must be at least 11 years old to register." };
+        }
+        
+        const birthdayString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        return { age, birthdayString, error: null };
+    }
+
+    if(monthSelect) monthSelect.addEventListener('change', calculateAge);
+    if(daySelect) daySelect.addEventListener('change', calculateAge);
+    if(yearSelect) yearSelect.addEventListener('change', calculateAge);
+
 
     // =========================================
-    // 7. LOGIN LOGIC (UPDATED FOR JWT AND REDIRECT)
+    // 7. LOGIN LOGIC 
     // =========================================
     const loginForm = document.getElementById('loginForm');
     const loginUsernameInput = document.getElementById('username');
@@ -560,14 +748,12 @@ function initializeLandingPage() {
                 const data = await response.json();
 
                 if (response.ok && data.status === 'success' && data.token) {
-                     // *** CRITICAL JWT STORAGE AND REDIRECT ***
                      localStorage.setItem('authToken', data.token);
                      showGlobalNotification('Login successful! Redirecting...', 'success');
                      
-                     // Redirect to the authenticated page
                      setTimeout(() => {
                         window.location.href = 'home.html'; 
-                     }, 1000); // Wait 1 second for user to see message
+                     }, 1000);
 
                 } else if (data.status === 'unverified') {
                      pendingEmail = identifier.includes('@') ? identifier : '';
@@ -593,7 +779,7 @@ function initializeLandingPage() {
     }
 
     // =========================================
-    // 8. OTP LOGIC (UNCHANGED)
+    // 8. OTP LOGIC
     // =========================================
     const otpForm = document.getElementById('otpForm');
     const otpInputs = document.querySelectorAll('.otp-input');
@@ -668,7 +854,7 @@ function initializeLandingPage() {
                         showGlobalNotification('Verified! Please login.', 'success');
                         openModal('login');
                     } else {
-                        verifiedOtpToken = data.token || otp; // Store token from server
+                        verifiedOtpToken = data.token || otp;
                         showGlobalNotification('OTP Verified. Set new password.', 'success');
                         openModal('reset');
                     }
@@ -692,7 +878,6 @@ function initializeLandingPage() {
         });
     }
     
-    // FIXED: Added Resend Button Logic
     if (resendBtn) {
         resendBtn.addEventListener('click', async () => {
             if (!pendingEmail) {
@@ -749,9 +934,8 @@ function initializeLandingPage() {
     const forgotEmailInput = document.getElementById('forgotEmail');
 
     if (forgotEmailInput) {
-        // Live validation
         forgotEmailInput.addEventListener('blur', () => {
-            const error = validateAnyEmail(forgotEmailInput.value.trim()); // Use general email check
+            const error = validateAnyEmail(forgotEmailInput.value.trim());
             if(error) setInputError(forgotEmailInput, error);
         });
         forgotEmailInput.addEventListener('input', () => clearInputError(forgotEmailInput));
@@ -805,7 +989,6 @@ function initializeLandingPage() {
     const resetMessageDiv = document.querySelector('#resetPasswordModal .login-message');
     
     if (newPasswordInput) {
-         // Live validation
          newPasswordInput.addEventListener('blur', () => {
             const error = validatePassword(newPasswordInput.value);
             if(error) setInputError(newPasswordInput, error);

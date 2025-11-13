@@ -7,9 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- FIXED: Path relative to static root -->
   <link rel="stylesheet" href="css/global.css">
 </head>
 <body class="min-h-screen bg-white">
+
+  <!-- ADDED: Preloader screen -->
+  <div id="preloader">
+    <div class="spinner"></div>
+  </div>
 
   <!-- Navigation -->
   <nav class="navbar">
@@ -35,7 +42,7 @@
 
   <!-- Hero Section -->
   <section class="hero">
-    <div class="hero-container" style="position: relative;">
+    <div class="hero-container">
       <div>
         <h1 class="hero-title">Where Students Connect, Chat & Grow Together</h1>
         <p class="hero-description">
@@ -47,8 +54,10 @@
           <button class="btn btn-signup btn-large js-open-signup">Get Started Free</button>
         </div>
       </div>
+
       <div class="hero-gif-container">
-        <img src="stock_image/landing_page1.gif" alt="Animated students chatting" class="hero-gif"/>
+        <!-- Added 'loading="lazy"' to non-critical images -->
+        <img src="stock_image/landing_page1.gif" alt="Animated students chatting" class="hero-gif" loading="lazy"/>
       </div>
     </div>
   </section>
@@ -62,11 +71,12 @@
           Four powerful features to make your student life amazing
         </p>
       </div>
+
       <div class="features-grid">
         <!-- Feature 1 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img src="stock_image/chat.gif" alt="Chat animation" class="feature-gif"/>
+            <img src="stock_image/chat.gif" alt="Chat animation" class="feature-gif" loading="lazy"/>
           </div>
           <h3 class="feature-title">
             <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -82,7 +92,7 @@
         <!-- Feature 2 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img src="stock_image/groupchat.gif" alt="Group chat animation" class="feature-gif"/>
+            <img src="stock_image/groupchat.gif" alt="Group chat animation" class="feature-gif" loading="lazy"/>
           </div>
           <h3 class="feature-title">
             <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -101,7 +111,7 @@
         <!-- Feature 3 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img src="stock_image/community.gif" alt="Community animation" class="feature-gif"/>
+            <img src="stock_image/community.gif" alt="Community animation" class="feature-gif" loading="lazy"/>
           </div>
           <h3 class="feature-title">
             <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -119,7 +129,7 @@
         <!-- Feature 4 -->
         <div class="feature-card">
           <div class="feature-gif-wrapper">
-            <img src="stock_image/post.gif" alt="Post animation" class="feature-gif"/>
+            <img src="stock_image/post.gif" alt="Post animation" class="feature-gif" loading="lazy"/>
           </div>
           <h3 class="feature-title">
             <svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -238,7 +248,6 @@
                   <label for="password">Password</label>
                   <div class="input-wrapper">
                     <input type="password" id="password" placeholder="Your password" required>
-                    <!-- FIXED: Using <img> tag with relative path -->
                     <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
                   </div>
                    <span class="error-message"></span>
@@ -265,12 +274,16 @@
       <div class="container">
         <div class="card-wrapper">
           <div class="card">
-            <div id="signupSection" class="form-section active">
-              <div class="header">
-                <h1>Create Account</h1>
-                <p>Join us today and get started</p>
-              </div>
-              <form id="signupForm" class="form">
+            
+            <form id="signupForm" class="form">
+              
+              <!-- === SIGNUP STEP 1: USER DETAILS === -->
+              <div id="signupStep1">
+                <div class="header">
+                  <h1>Create Account</h1>
+                  <p>Join us today and get started</p>
+                </div>
+
                 <div class="form-group">
                   <label for="username_signup">Username</label>
                   <div class="input-wrapper">
@@ -280,13 +293,12 @@
                     </svg>
                     <input type="text" id="username_signup" placeholder="username_123" required />
                   </div>
-                  <!-- REMOVED help-text -->
                   <span class="error-message"></span>
                 </div>
                 
-                <!-- ADDED: School Selection Field -->
                 <div class="form-group school-search-wrapper">
-                  <label for="school_search">School/College Name/Institute Name</label>
+                  <!-- FIXED: Label text changed -->
+                  <label for="school_search">School/College/Institute Name</label>
                   <div class="input-wrapper">
                      <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                        <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
@@ -294,7 +306,9 @@
                     <input type="text" id="school_search" placeholder="Search for your school..." autocomplete="off">
                     <button type="button" class="clear-search js-clear-school" style="display: none;">&times;</button>
                   </div>
-                  <div class="autocomplete-results" id="school_results" style="display: none;"></div>
+                  <div class="autocomplete-results" id="school_results"></div>
+                  <!-- Added separate error message for school -->
+                  <span class="error-message" id="school-error"></span>
                 </div>
 
                 <div class="form-group">
@@ -306,7 +320,6 @@
                     </svg>
                     <input type="email" id="email" placeholder="yourname@gmail.com" required />
                   </div>
-                  <!-- REMOVED help-text -->
                   <span class="error-message"></span>
                 </div>
                 <div class="form-group">
@@ -317,7 +330,6 @@
                       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
                     <input type="password" id="password_signup" placeholder="Min 8 chars, letters & numbers" required />
-                    <!-- FIXED: Using <img> tag with relative path -->
                     <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
                   </div>
                   <div class="password-strength" style="display: none;">
@@ -326,18 +338,71 @@
                   </div>
                   <span class="error-message"></span>
                 </div>
-                <button type="submit" id="signupBtn" class="submit-btn">
+                
+                <!-- This button now moves to Step 2, not submit -->
+                <button type="button" id="continueToBirthdayBtn" class="submit-btn">
                   <span>Continue</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                     <polyline points="12 5 19 12 12 19"></polyline>
                   </svg>
                 </button>
+                
                 <div class="form-footer">
                   <p>Already have an account? <a href="#" class="js-open-login">Sign In</a></p>
                 </div>
-              </form>
-            </div>
+              </div>
+
+              <!-- === SIGNUP STEP 2: BIRTHDAY (NEW & RESTYLED) === -->
+              <div id="signupStep2" style="display: none;">
+                <div class="header">
+                  <div class="birthday-icon-wrapper">
+                    <!-- SVG icon for birthday cake -->
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a2.25 2.25 0 0 1-2.25 2.25H5.25a2.25 2.25 0 0 1-2.25-2.25v-8.25M12 1.5M12 5.25v3.75m0 0 0 0M12 9l-2.25-2.25M12 9l2.25 2.25M12 9l2.25-2.25M12 9l-2.25 2.25M3 11.25h18M3 15h18" />
+                    </svg>
+                  </div>
+                  <h1>Add Your Birthday</h1>
+                  <p>You must be at least 11 years old to use Conify.</p>
+                </div>
+
+                <!-- Age Calculator Display -->
+                <div class="age-calculator">
+                  Your Age: <span id="age-display">--</span>
+                </div>
+
+                <!-- Birthday Input Dropdowns -->
+                <div class="form-group">
+                  <label for="month-select">Date of Birth</label>
+                  <div class="birthday-inputs">
+                    <select id="month-select" class="bday-select" required>
+                      <option value="">Month</option>
+                    </select>
+                    <select id="day-select" class="bday-select" required>
+                      <option value="">Day</option>
+                    </select>
+                    <select id="year-select" class="bday-select" required>
+                      <option value="">Year</option>
+                    </select>
+                  </div>
+                  <span class="error-message" id="birthday-error"></span>
+                </div>
+
+                <!-- This button triggers the FINAL submit -->
+                <button type="submit" id="signupSubmitBtn" class="submit-btn">
+                  <span>Sign Up</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </button>
+                
+                <div class="form-footer">
+                  <p><a href="#" id="backToStep1Btn">← Go Back</a></p>
+                </div>
+              </div>
+
+            </form>
           </div>
         </div>
       </div>
@@ -450,7 +515,6 @@
                 <label class="form-label">New Password</label>
                 <div class="input-wrapper">
                   <input type="password" id="newPassword" required placeholder="Min 8 chars">
-                   <!-- FIXED: Using <img> tag with relative path -->
                    <img src="stock_image/eye-pass.svg" class="input-icon password-toggle js-toggle-password" alt="Show password">
                 </div>
                 <span class="error-message"></span>
@@ -466,7 +530,7 @@
   <!-- Notification Container -->
   <div id="notification-container"></div>
 
-  <!-- ADDED colleges.js SCRIPT -->
+  <!-- FIXED: Script load order -->
   <script src="js/colleges.js"></script>
   <script src="js/landing_page.js"></script>
 </body>

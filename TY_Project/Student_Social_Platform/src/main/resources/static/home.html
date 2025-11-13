@@ -1,2 +1,38 @@
-<p>HELLO</p>
-<script src="js/home.js"></script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Home Page</title>
+
+    <!-- 
+      This "Security Guard" script runs BEFORE the page loads.
+      It will kick out unauthenticated users.
+    -->
+    <script src="js/auth_check.js"></script>
+
+    <!-- Link your main stylesheet -->
+    <link rel="stylesheet" href="css/global.css">
+</head>
+<body class="min-h-screen bg-white">
+
+    <!-- Example content -->
+    <div class="nav-container" style="background: #f9f9f9; border-bottom: 1px solid #ddd;">
+        <div class="logo">
+            <span class="logo-text">Conify Home</span>
+        </div>
+        <div class="nav-buttons">
+            <a href="#" id="logout-button" class="btn btn-signin">Logout</a>
+        </div>
+    </div>
+
+    <div style="padding: 2rem;">
+        <h1 class="section-title" id="welcome-message">Loading your profile...</h1>
+        <p class="section-description" id="user-email-display"></p>
+        <p class="section-description" id="user-school-display"></p>
+    </div>
+
+    <!-- You can add another script here for home-page specific logic -->
+    <!-- <script src="js/home_page_logic.js"></script> -->
+</body>
+</html>
