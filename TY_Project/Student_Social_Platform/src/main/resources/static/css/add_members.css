@@ -1,0 +1,108 @@
+/* Add Members Modal Styles */
+
+.add-members-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* Darker backdrop to show clearly */
+    backdrop-filter: blur(4px);
+    z-index: 10008; 
+    display: block; /* Ensure it is visible when injected */
+}
+
+.add-members-modal {
+    /* KEY FIX 1: Set position fixed relative to viewport */
+    position: fixed; 
+    top: 50%;
+    left: 50%;
+    /* KEY FIX 2: Translate to center it */
+    transform: translate(-50%, -50%);
+    
+    width: 90%;
+    max-width: 450px;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    /* KEY FIX 3: Ensure highest Z-Index */
+    z-index: 10009; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 80vh;
+}
+.amm-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.amm-header h3 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0;
+}
+.amm-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+.friend-select-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background: transparent;
+    width: 100%;
+    border: none;
+    text-align: left;
+}
+.friend-select-item:hover {
+    background-color: #f9fafb;
+}
+.friend-select-item.selected {
+    background-color: rgba(65, 105, 225, 0.1); /* Royal Blue tint */
+}
+.check-circle {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 50%;
+    border: 2px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+}
+.friend-select-item.selected .check-circle {
+    background-color: #4169E1; /* Royal Blue */
+    border-color: #4169E1;
+    color: white;
+}
+.amm-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    gap: 25rem;
+}
+
+/* Dark Mode */
+body.dark-mode .add-members-modal { 
+    background-color: #1f2937; 
+    border: 1px solid #374151; 
+}
+body.dark-mode .amm-header, body.dark-mode .amm-footer { 
+    border-color: #374151; 
+    background-color: #1f2937; 
+}
+body.dark-mode .amm-header h3 { color: white; }
+body.dark-mode .friend-select-item h4 { color: white; } /* Ensure text visibility */
+body.dark-mode .friend-select-item p { color: #9ca3af; } /* Ensure text visibility */
+body.dark-mode .friend-select-item:hover { 
+    background-color: #374151; 
+}
+body.dark-mode .friend-select-item.selected { 
+    background-color: rgba(65, 105, 225, 0.2); 
+}

@@ -1,0 +1,281 @@
+/* Friend List Specific Styles */
+
+.friend-search-wrapper {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+/* FIXED: Constrain the SVG icon size */
+.friend-search-wrapper svg {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.6rem;  /* Specific width */
+    height: 1.6rem; /* Specific height */
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.friend-search-bar {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3.5rem; /* Space for icon */
+    border-radius: 12px;
+    background-color: #f3f4f6;
+    border: 1px solid transparent;
+    font-size: 1.4rem;
+    outline: none;
+}
+.friend-search-bar:focus {
+    border-color: var(--bright-purple, #8b5cf6);
+    background-color: white;
+}
+
+.friend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.friend-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 12px;
+    transition: background-color 0.2s, transform 0.08s;
+}
+.friend-list-item:hover {
+    background-color: #f3f4f6;
+    transform: translateY(-1px);
+}
+
+.friend-avatar {
+    width: 5rem;
+    height: 5rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.friend-info {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-name {
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: #1f2937;
+}
+
+.friend-major {
+    font-size: 1.2rem;
+    color: #6b7280;
+}
+
+/* Buttons styling + transitions */
+.btn {
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, opacity 0.18s ease, transform 0.06s ease;
+    border-radius: 8px;
+}
+
+/* Primary message button (blue) */
+.btn-primary {
+    background: linear-gradient(180deg, #4f46e5 0%, #3b82f6 100%);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(59,130,246,0.12);
+}
+.btn-primary:active { transform: translateY(1px); }
+
+/* Disabled state for message button */
+.btn-disabled {
+    opacity: 0.55;
+    pointer-events: none;
+    background: linear-gradient(180deg, #9ca3af 0%, #6b7280 100%);
+    color: #ffffff;
+    box-shadow: none;
+}
+
+/* Add Friend button style */
+.btn-add-friend {
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+}
+
+/* Unfriend button style */
+.btn-unfriend {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444; /* ensure visible red color */
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.btn-unfriend:hover {
+    background: rgba(239,68,68,0.06);
+}
+
+/* Ensure Unfriend remains visible even when disabled/soft state */
+.btn-unfriend[disabled], .btn-unfriend.btn-disabled {
+    opacity: 0.85;
+    pointer-events: none;
+    color: #ef4444; /* keep red visible */
+    border-color: rgba(239,68,68,0.6);
+    background: rgba(239,68,68,0.03);
+}
+
+/* Dark Mode */
+body.dark-mode .card {
+    background-color: #111319; /* dark modal shell */
+    color: #f8fafc;
+    box-shadow: 0 18px 60px rgba(2,6,23,0.6);
+    border-radius: 12px;
+}
+
+/* header/title and close button in dark mode */
+body.dark-mode .card .header h1,
+body.dark-mode .card .header .friends-modal-title {
+    color: #f8fafc;
+}
+body.dark-mode .js-close-modal,
+body.dark-mode .card .modal-close {
+    color: #e5e7eb;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+/* specific dark mode list colors */
+body.dark-mode .friend-search-bar {
+    background-color: #374151;
+    color: white;
+}
+body.dark-mode .friend-list-item {
+    background-color: #1f2937;
+}
+body.dark-mode .friend-list-item:hover {
+    background-color: #374151;
+}
+body.dark-mode .friend-name {
+    color: white;
+}
+body.dark-mode .friend-major {
+    color: #9ca3af;
+}
+body.dark-mode .btn-unfriend {
+    background-color: transparent;
+    border-color: #ef4444;
+    color: #ef4444;
+}
+body.dark-mode .btn-unfriend:hover {
+    background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* Light-mode / modal content overrides
+   (only the necessary changes so modal looks white in light mode
+    and transitions between friend/unfriend/message are smooth) */
+body:not(.dark-mode) .card {
+    background-color: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 12px 40px rgba(2,6,23,0.08);
+    border-radius: 12px;
+    /* ensure modal interior is bright and readable */
+}
+
+/* make the inner list items crisp white in light mode */
+body:not(.dark-mode) .friend-list-item {
+    background-color: #ffffff;
+    border: 1px solid rgba(15,23,42,0.04);
+}
+body:not(.dark-mode) .friend-list-item:hover {
+    background-color: #fbfdff;
+}
+
+/* search bar in light mode */
+body:not(.dark-mode) .friend-search-bar {
+    background-color: #f8fafc;
+    color: #374151;
+}
+
+/* ensure names/majors are legible */
+body:not(.dark-mode) .friend-name {
+    color: #0f172a;
+}
+body:not(.dark-mode) .friend-major {
+    color: #6b7280;
+}
+
+/* Keep unfriend text clearly visible in light mode */
+body:not(.dark-mode) .btn-unfriend {
+    color: #dc2626; /* slightly darker red for better contrast */
+    border-color: #f87171;
+    background: transparent;
+    box-shadow: none;
+}
+body:not(.dark-mode) .btn-unfriend:hover {
+    background: rgba(220,38,38,0.06);
+}
+
+/* Header (title) and close button visibility adjustments in light mode */
+body:not(.dark-mode) .card .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 0.5rem;
+}
+body:not(.dark-mode) .card .header h1,
+body:not(.dark-mode) .card .header .friends-modal-title {
+    color: #0f172a;
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+/* Close button styling for light mode - make it clearly visible */
+body:not(.dark-mode) .js-close-modal,
+body:not(.dark-mode) .card .modal-close {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(15,23,42,0.06);
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(2,6,23,0.06);
+}
+
+/* Make sure close icon (X) color contrasts on both modes */
+.js-close-modal svg,
+.card .modal-close svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+/* Smooth transitions between friend/unfriend/message states */
+.btn,
+.friend-list-item,
+.friend-search-bar {
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.08s ease, box-shadow 0.18s ease;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 480px) {
+    .friend-avatar { width: 3.8rem; height: 3.8rem; }
+    .friend-name { font-size: 1.2rem; }
+    .friend-major { font-size: 1rem; }
+    .js-close-modal, .card .modal-close { width: 32px; height: 32px; }
+}

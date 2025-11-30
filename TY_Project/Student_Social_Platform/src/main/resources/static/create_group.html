@@ -1,0 +1,26 @@
+<div class="create-group-backdrop js-close-create-group"></div>
+<div class="create-group-modal">
+    <div class="cg-header">
+        <h3>Create Group</h3>
+        <button class="btn-icon js-close-create-group">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    
+    <div class="cg-body">
+        <div class="form-group">
+            <label for="group-name">Group Name</label>
+            <input type="text" id="group-name" placeholder="Enter group name" class="cg-input" autofocus>
+        </div>
+        
+        <div class="form-group">
+            <label for="group-desc">Description</label>
+            <textarea id="group-desc" placeholder="Describe your group" class="cg-textarea"></textarea>
+        </div>
+    </div>
+
+    <div class="cg-footer">
+        <button class="btn-secondary js-close-create-group">Cancel</button>
+        <button id="submit-group-btn" class="btn-primary" disabled>Create Group</button>
+    </div>
+</div>

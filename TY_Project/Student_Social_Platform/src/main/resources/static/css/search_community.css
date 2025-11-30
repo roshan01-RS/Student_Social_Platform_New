@@ -1,0 +1,274 @@
+/* =========================================
+   SEARCH COMMUNITY MODAL STYLES
+   ========================================= */
+
+/* Backdrop */
+.add-members-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 10010; 
+    display: none; 
+}
+
+/* Modal Container - Light Mode Default */
+.search-community-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    background-color: #ffffff !important; /* Force White */
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    z-index: 10011;
+    display: none; 
+    flex-direction: column;
+    overflow: hidden;
+    max-height: 85vh;
+    border: 1px solid #e5e7eb; /* Light border */
+}
+
+/* Header - Light Mode */
+.amm-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #ffffff !important; /* Force White */
+    border-radius: 16px 16px 0 0; 
+    color: #111827; /* Force Dark Text */
+}
+.amm-header h3 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #111827; /* Force Dark Text */
+    margin: 0;
+}
+
+/* Close Button */
+.btn-icon {
+    width: 3.2rem;
+    height: 3.2rem;
+    border-radius: 50%;
+    color: #6b7280;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+.btn-icon:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+.btn-icon svg { width: 2rem; height: 2rem; }
+
+/* Body - Light Mode */
+.amm-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    background-color: #ffffff !important; /* Force White */
+    min-height: 300px;
+    color: #111827;
+}
+
+/* Section Title */
+.amm-body h4 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+}
+
+/* Search Wrapper */
+.chat-search-wrapper {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+.chat-search-icon {
+    position: absolute;
+    left: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.8rem;
+    height: 1.8rem;
+    color: #9ca3af;
+}
+.chat-search-input {
+    width: 100%;
+    padding: 1rem 1.2rem 1rem 3.8rem;
+    border-radius: 8px;
+    background-color: #f3f4f6;
+    border: 1px solid transparent;
+    font-size: 1.4rem;
+    outline: none;
+    color: #111827;
+    transition: all 0.2s;
+}
+.chat-search-input:focus {
+    background-color: #ffffff;
+    border-color: #4169E1; 
+    box-shadow: 0 0 0 3px rgba(65, 105, 225, 0.1);
+}
+
+/* Search Results List */
+#community-search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Result Item - Light Mode */
+.community-result-item {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1rem;
+    border-radius: 12px;
+    background-color: #f9fafb;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.community-result-item:hover {
+    background-color: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+/* Icon Box */
+.result-icon {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #4169E1, #5B81FF); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(65, 105, 225, 0.2);
+}
+
+/* Text Info */
+.result-info { flex: 1; min-width: 0; }
+.result-name {
+    display: block;
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: #111827; /* Force Dark Text */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.result-meta {
+    display: block;
+    font-size: 1.2rem;
+    color: #6b7280;
+}
+
+/* Action Buttons */
+.btn-secondary {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    font-size: 1.2rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+}
+
+.btn-primary {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #4169E1, #5B81FF);
+    color: white;
+    border: none;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    box-shadow: 0 2px 4px rgba(65, 105, 225, 0.3);
+}
+.btn-primary:hover { opacity: 0.9; }
+
+/* Footer - Light Mode */
+.amm-footer {
+    padding: 1.5rem;
+    border-top: 1px solid #f3f4f6;
+    background-color: #ffffff !important; /* Force White */
+    display: flex;
+    border-radius: 0 0 16px 16px; 
+}
+
+/* =========================================
+   DARK MODE OVERRIDES
+   ========================================= */
+body.dark-mode .search-community-modal {
+    background-color: #1f1f22 !important;
+    border: 1px solid #2d2d30;
+}
+
+body.dark-mode .amm-header,
+body.dark-mode .amm-body,
+body.dark-mode .amm-footer {
+    background-color: #1f1f22 !important;
+    border-color: #2d2d30;
+    color: white;
+}
+
+body.dark-mode .amm-header h3 { color: white; }
+body.dark-mode .amm-body h4 { color: #9ca3af; } /* Suggested Communities Title */
+
+body.dark-mode .btn-icon { color: #9ca3af; }
+body.dark-mode .btn-icon:hover {
+    background-color: #2d2d30;
+    color: white;
+}
+
+body.dark-mode .chat-search-input {
+    background-color: #2d2d30;
+    color: white;
+    border: 1px solid #374151;
+}
+body.dark-mode .chat-search-input:focus {
+    border-color: #4169E1;
+}
+
+body.dark-mode .community-result-item {
+    background-color: #2d2d30; /* Darker item bg */
+    border-color: #3f3f46;
+}
+body.dark-mode .community-result-item:hover {
+    background-color: #374151;
+}
+
+body.dark-mode .result-name { color: white; }
+body.dark-mode .result-meta { color: #9ca3af; }
+
+body.dark-mode .btn-secondary {
+    background-color: transparent;
+    border-color: #4b5563;
+    color: #d1d5db;
+}
+body.dark-mode .btn-secondary:hover {
+    background-color: #3f3f46;
+    color: white;
+}
+
+/* Scrollbar */
+body.dark-mode .amm-body::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+}

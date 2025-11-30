@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('loaded');
 });
 
+// This event waits for ALL assets (images, colleges.js) to be loaded.
 window.addEventListener('load', () => {
     initializeLandingPage(); 
 });
@@ -44,14 +45,9 @@ function initializeLandingPage() {
 
     let pendingEmail = localStorage.getItem('pendingEmail') || '';
     let otpContext = 'signup';
-    // REMOVED: let verifiedOtpToken = '';
     
     let selectedSchoolDomain = null;
     let isSchoolSelected = false; 
-
-    // ... (MODAL, EVENT LISTENER, NOTIFICATION, and FORM HELPER functions are all unchanged) ...
-    // ... (Skipping them for brevity, but they are still here) ...
-
 
     // =========================================
     // 2. CENTRAL MODAL MANAGEMENT
@@ -457,8 +453,8 @@ function initializeLandingPage() {
             if (schoolInput.value.trim() === '') {
                 schoolError = "School name is required.";
             } else if (!isSchoolSelected) {
-                 schoolError = "Please select a school from the suggested list.";
-                 showGlobalNotification("Please select your school from the list. Custom names are not allowed.", "error");
+                 schoolError = "Please select a school/college/institute from the suggested list.";
+                 showGlobalNotification("Please select your school/college/institute from the list. Custom names are not allowed.", "error");
             }
 
             if (userError) setInputError(usernameInput, userError);
@@ -709,8 +705,7 @@ function initializeLandingPage() {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (loginMessageDiv) {
-                loginMessageDiv.textContent = '';
-                loginMessageDiv.className = 'login-message';
+                loginMessageDiv.textContent = ''; // Clear inline error
             }
             clearInputError(loginUsernameInput);
             clearInputError(loginPasswordInput);
@@ -745,32 +740,38 @@ function initializeLandingPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(loginPayload)
                 });
-                const data = await response.json();
-
-                if (response.ok && data.status === 'success' && data.token) {
-                     localStorage.setItem('authToken', data.token);
-                     showGlobalNotification('Login successful! Redirecting...', 'success');
-                     
-                     setTimeout(() => {
-                        window.location.href = 'home.html'; 
-                     }, 1000);
-
-                } else if (data.status === 'unverified') {
-                     pendingEmail = identifier.includes('@') ? identifier : '';
-                     if(pendingEmail) localStorage.setItem('pendingEmail', pendingEmail);
-                     otpContext = 'signup';
-                     openModal('otp');
+                
+                // We check the response status first.
+                if (response.ok) {
+                    const data = await response.json(); // Get JSON only if response is OK
+                    
+                    // ** FIXED: Check for data.status, not data.token **
+                    if (data.status === 'success') {
+                         // The token is in the HTTP cookie, so we don't save it.
+                         
+                         // FIXED: This is the green notification you wanted
+                         showGlobalNotification(data.message || 'Login successful! Redirecting...', 'success');
+                         
+                         setTimeout(() => {
+                            window.location.href = 'home.html'; 
+                         }, 1000); // Wait 1 second for user to see message
+                    
+                    } else if (data.status === 'unverified') {
+                         pendingEmail = identifier.includes('@') ? identifier : '';
+                         if(pendingEmail) localStorage.setItem('pendingEmail', pendingEmail);
+                         otpContext = 'signup';
+                         openModal('otp');
+                    }
                 } else {
-                     if (loginMessageDiv) {
-                         loginMessageDiv.textContent = data.message || 'Invalid email or password.';
-                         loginMessageDiv.className = 'login-message error';
-                     }
+                    // This handles 401 Unauthorized (Invalid Credentials)
+                    const data = await response.json();
+                    // FIXED: Use notification instead of inline message
+                    showGlobalNotification(data.message || 'Invalid email or password.', 'error');
                 }
             } catch (err) {
-                 if (loginMessageDiv) {
-                     loginMessageDiv.textContent = 'Server connection failed';
-                     loginMessageDiv.className = 'login-message error';
-                 }
+                 // This handles 500 Internal Server Error or network failure
+                 // FIXED: Use notification instead of inline message
+                 showGlobalNotification('Server connection failed. Please try again.', 'error');
             } finally {
                  btn.disabled = false;
                  btn.innerHTML = originalText;
@@ -854,7 +855,7 @@ function initializeLandingPage() {
                         showGlobalNotification('Verified! Please login.', 'success');
                         openModal('login');
                     } else {
-                        verifiedOtpToken = data.token || otp;
+                        // FIXED: No longer save token to variable. The cookie is set by the server.
                         showGlobalNotification('OTP Verified. Set new password.', 'success');
                         openModal('reset');
                     }
@@ -1014,12 +1015,11 @@ function initializeLandingPage() {
             btn.innerHTML = 'Resetting...';
 
             try {
+                // FIXED: We only send the newPassword. The token is in the cookie.
                 const res = await fetch(ENDPOINTS.RESET_PASSWORD, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        email: pendingEmail, 
-                        otp: verifiedOtpToken,
                         newPassword: newPassword 
                     })
                 });
@@ -1030,7 +1030,6 @@ function initializeLandingPage() {
                     openModal('login');
                     pendingEmail = '';
                     localStorage.removeItem('pendingEmail');
-                    verifiedOtpToken = '';
                 } else {
                     if (resetMessageDiv) {
                         resetMessageDiv.textContent = data.message || 'Reset failed. Invalid code or email.';

@@ -1,0 +1,28 @@
+<!-- This is the HTML structure for the entire chat feature -->
+<div class="chat-layout">
+    
+    <!-- 1. Chat List Sidebar -->
+    <div class="chat-list-sidebar">
+        <div class="chat-list-header">
+            
+            <!-- FIXED: This structure is now simpler and matches the CSS -->
+            <div class="chat-search-wrapper">
+                <svg class="chat-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></svg>
+                <input type="text" id="chat-search-input" placeholder="Search..." class="chat-search-input">
+            </div>
+            <button class="btn-icon" id="add-friend-btn" title="Add Friend">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+            </button>
+            
+        </div>
+        <div class="chat-list-scroll-area" id="chat-list-container">
+            <!-- User list will be injected here by chatPanel.js -->
+        </div>
+    </div>
+
+    <!-- 2. Chat Window -->
+    <div class="chat-window" id="chat-window-container">
+        <!-- Chat window header, messages, and input injected here -->
+        <div class="chat-placeholder"><p>Select a conversation</p></div>
+    </div>
+</div>

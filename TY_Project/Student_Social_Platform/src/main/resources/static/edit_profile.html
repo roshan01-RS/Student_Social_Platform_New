@@ -1,0 +1,127 @@
+<!-- edit_profile.html -->
+<form id="edit-profile-form" class="edit-profile-page">
+  <!-- HEADER -->
+  <header class="edit-header">
+  
+    <button
+      type="button"
+      id="edit-close-btn"
+      class="edit-close-btn"
+      aria-label="Close"
+    >
+      ✕
+    </button>
+  </header>
+
+  <!-- SCROLLABLE CONTENT -->
+  <div class="edit-body">
+    <!-- PHOTO SECTION -->
+    <section class="edit-section edit-photo-card">
+      <div class="edit-photo-layout">
+        <div class="edit-photo-avatar-wrapper">
+          <img
+            id="edit-avatar-img"
+            class="edit-photo-avatar"
+            src=""
+            alt="Profile photo"
+          />
+        </div>
+        <div class="edit-photo-text">
+          <h3 class="edit-section-title">Profile Photo</h3>
+          <p class="edit-section-subtitle">
+            Click on the image or button below to update your profile photo.
+          </p>
+          <div class="edit-photo-actions">
+            <label class="edit-btn edit-btn-primary">
+              <input
+                id="edit-avatar-file-input"
+                type="file"
+                accept="image/*"
+                hidden
+              />
+              Upload New Photo
+            </label>
+            <button
+              type="button"
+              id="edit-delete-photo-btn"
+              class="edit-btn edit-btn-danger"
+            >
+              Delete Photo
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- READONLY FIELDS -->
+    <section class="edit-section">
+      <label class="edit-field-label">Username</label>
+      <div id="edit-display-username" class="edit-field-display">@username</div>
+    </section>
+
+    <section class="edit-section">
+      <label class="edit-field-label">Email</label>
+      <div id="edit-display-email" class="edit-field-display">
+        email@example.com
+      </div>
+    </section>
+
+    <section class="edit-section">
+      <label class="edit-field-label">Institute</label>
+      <div id="edit-display-institute" class="edit-field-display">
+        My Institute
+      </div>
+    </section>
+
+    <section class="edit-section">
+      <label class="edit-field-label">Date of Birth</label>
+      <div id="edit-display-dob" class="edit-field-display">
+        January 1, 2000
+      </div>
+    </section>
+
+    <!-- EDITABLE MAJOR -->
+    <section class="edit-section edit-section-highlight">
+      <div class="edit-section-header-row">
+        <label class="edit-field-label">Major</label>
+      </div>
+      <input
+        type="text"
+        id="edit-major-input"
+        class="edit-input-field"
+        placeholder="Enter your major"
+      />
+    </section>
+
+    <!-- EDITABLE BIO -->
+    <section class="edit-section edit-section-highlight">
+      <div class="edit-section-header-row">
+        <label class="edit-field-label">Bio</label>
+      </div>
+      <textarea
+        id="edit-bio-textarea"
+        class="edit-textarea-field"
+        rows="4"
+        placeholder="Tell us about yourself..."
+      ></textarea>
+    </section>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="edit-footer">
+    <button
+      type="button"
+      id="edit-cancel-btn"
+      class="edit-footer-btn edit-footer-btn-secondary"
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      id="edit-save-btn"
+      class="edit-footer-btn edit-footer-btn-primary"
+    >
+      Save Changes
+    </button>
+  </footer>
+</form>

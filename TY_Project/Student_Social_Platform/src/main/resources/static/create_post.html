@@ -1,0 +1,52 @@
+
+<div class="create-post-backdrop js-close-create-post"></div>
+
+<div class="create-post-modal">
+    
+    <!-- 1. Header -->
+    <div class="cp-header">
+      
+        <button class="btn-icon js-close-create-post">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+    </div>
+    
+    <!-- 2. Body (Scrollable) -->
+    <div class="cp-body">
+        <div class="cp-user">
+            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=You" alt="User" />
+            <div class="cp-user-info">
+                <p class="name">You</p>
+                <p class="privacy">Public</p>
+            </div>
+        </div>
+        
+        <textarea id="post-textarea" placeholder="What's on your mind?" class="cp-textarea" autofocus></textarea>
+        
+        <div id="post-image-preview-container" style="display: none;">
+             <img id="post-image-preview" src="" alt="Preview">
+             <button id="remove-image-btn" title="Remove Image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+             </button>
+        </div>
+    </div>
+
+    <!-- 3. Footer (Fixed at bottom) -->
+    <div class="cp-footer">
+        <div class="cp-tools">
+            <button class="btn-tool" id="add-photo-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Photo</span>
+            </button>
+            
+            <button class="btn-tool" id="add-emoji-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                <span>Emoji</span>
+            </button>
+            
+            <input type="file" id="post-file-input" accept="image/*" style="display: none;">
+        </div>
+        
+        <button id="submit-post-btn" class="btn-post" disabled>Post</button>
+    </div>
+</div>

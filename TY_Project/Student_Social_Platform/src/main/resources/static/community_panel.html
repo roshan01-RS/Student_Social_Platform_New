@@ -1,0 +1,42 @@
+<div class="community-layout">
+    <!-- 1. Community List Sidebar -->
+    <div class="community-list-sidebar">
+        <div class="community-list-header">
+            
+            <!-- Header Top: Create & Search Buttons -->
+            <div class="community-header-top" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                 <button class="btn-create-community" id="create-community-btn" style="flex: 1; justify-content: center;" title="Create New Community">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Create
+                </button>
+                 <!-- SEARCH BUTTON (Must be here) -->
+                 <button class="btn-create-community" id="search-community-btn" style="flex: 1; justify-content: center; background: linear-gradient(135deg, #3b82f6, #2563eb);" title="Search & Join Communities">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    Search
+                </button>
+            </div>
+
+            <!-- Filter Input for My Communities -->
+            <div class="community-search-wrapper">
+                <svg class="community-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></svg>
+                <input type="text" id="community-search-input" placeholder="Filter your communities..." class="community-search-input">
+            </div>
+        </div>
+        
+        <div class="community-list-scroll-area" id="community-list-container">
+            <!-- Community items will be injected here -->
+            <div style="padding: 20px; text-align: center; color: #888;">Loading...</div>
+        </div>
+    </div>
+
+    <!-- 2. Community Main Window -->
+    <div class="community-window" id="community-feed-window">
+        <div class="chat-placeholder">
+            <div class="logo-icon-placeholder" style="width:6rem;height:6rem;background:#e5e7eb;border-radius:1.5rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:3rem;height:3rem"><path d="M18.37 8.18c-1.32-2.3-3.6-3.88-6.37-3.88-4.42 0-8 3.58-8 8s3.58 8 8 8c2.77 0 5.05-1.58 6.37-3.88"/></svg>
+            </div>
+            <h2>Explore Communities</h2>
+            <p>Select a community to view discussions and events.</p>
+        </div>
+    </div>
+</div>

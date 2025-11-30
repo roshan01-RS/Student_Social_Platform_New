@@ -1,0 +1,257 @@
+/* Create Post Modal Styles */
+
+.create-post-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 9998; /* Very high z-index */
+    display: block;
+}
+
+.create-post-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 550px;
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    z-index: 9999; /* Highest z-index */
+    overflow: hidden;
+    /* Ensure flex layout for sticky header/footer behavior */
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+/* Header */
+.cp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #f3f4f6;
+    flex-shrink: 0;
+    background-color: #ffffff; /* Ensure background is solid */
+}
+
+.cp-header h3 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--dark-color, #111827);
+    margin: 0;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: var(--text-secondary, #6b7280);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+.btn-icon:hover {
+    background-color: #f3f4f6;
+    color: var(--dark-color, #111827);
+}
+
+/* Body */
+.cp-body {
+    padding: 2rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    background-color: #ffffff;
+}
+
+.cp-user {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.cp-user img {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.cp-user-info .name {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--dark-color, #111827);
+    line-height: 1.2;
+    margin: 0;
+}
+
+.cp-user-info .privacy {
+    font-size: 1.3rem;
+    color: var(--text-secondary, #6b7280);
+    margin: 0;
+}
+
+.cp-textarea {
+    width: 100%;
+    min-height: 120px;
+    border: none;
+    resize: none;
+    font-size: 1.6rem;
+    color: var(--text-primary, #1f2937);
+    font-family: sans-serif;
+    outline: none;
+    margin-bottom: 1.5rem;
+    background: transparent;
+}
+.cp-textarea::placeholder {
+    color: #9ca3af;
+}
+
+/* Image Preview Styling */
+#post-image-preview-container {
+    margin-bottom: 1.5rem;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+#post-image-preview {
+    width: 100%;
+    display: block;
+    max-height: 300px;
+    object-fit: cover;
+}
+#remove-image-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    z-index: 10;
+}
+#remove-image-btn:hover {
+    background: rgba(0,0,0,0.8);
+}
+
+/* Footer */
+.cp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #f3f4f6;
+    background-color: #ffffff;
+    flex-shrink: 0;
+}
+
+.cp-tools {
+    display: flex;
+    gap: 0.8rem;
+}
+
+/* Photo/Emoji Buttons */
+.btn-tool {
+    background: transparent;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    color: var(--text-secondary, #6b7280);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+}
+.btn-tool:hover {
+    background-color: #f3f4f6;
+    color: var(--bright-purple, #7c3aed);
+}
+.btn-tool svg {
+    width: 2rem;
+    height: 2rem;
+    display: block;
+}
+.btn-tool span {
+    display: block;
+}
+
+/* Post Button */
+.btn-post {
+    padding: 0.8rem 2.4rem;
+    font-size: 1.4rem;
+    border-radius: 8px;
+    background: #6366f1; 
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn-post:disabled {
+    background: #e5e7eb;
+    color: #9ca3af;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.btn-post:not(:disabled) {
+    background: linear-gradient(to right, var(--bright-purple, #8b5cf6), var(--bright-pink, #ec4899));
+    box-shadow: 0 4px 12px rgba(181, 55, 242, 0.3);
+}
+.btn-post:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(181, 55, 242, 0.4);
+}
+
+/* Dark Mode */
+body.dark-mode .create-post-modal {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+}
+body.dark-mode .cp-header {
+    background-color: #1f2937;
+    border-bottom-color: #374151;
+}
+body.dark-mode .cp-body {
+    background-color: #1f2937;
+}
+body.dark-mode .cp-footer {
+    border-top-color: #374151;
+    background-color: #1f2937;
+}
+body.dark-mode .cp-header h3,
+body.dark-mode .cp-user-info .name {
+    color: white;
+}
+body.dark-mode .cp-textarea {
+    background-color: transparent;
+    color: white;
+}
+body.dark-mode .btn-tool {
+    color: #9ca3af;
+}
+body.dark-mode .btn-tool:hover {
+    background-color: #374151;
+    color: white;
+}
+body.dark-mode .btn-post:disabled {
+    background: #374151;
+    color: #6b7280;
+}

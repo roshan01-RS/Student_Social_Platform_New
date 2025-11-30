@@ -1,0 +1,207 @@
+/* =========================================
+   SETTINGS PANEL STYLES (Flex Grow Fix)
+   ========================================= */
+
+/* Wrapper - Fills the parent container */
+.settings-panel-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Take up all available space */
+    height: 100%; /* Ensure full height */
+    min-height: 0; /* Critical for flex scrolling */
+    width: 100%;
+    
+    background-color: var(--light-bg); 
+    border-radius: 12px;
+    
+    /* Scroll handling */
+    overflow-y: auto; 
+    overflow-x: hidden;
+    
+    /* Scrollbar Styling */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s;
+}
+
+.settings-panel-wrapper:hover {
+    scrollbar-color: #d1d5db transparent;
+}
+.settings-panel-wrapper::-webkit-scrollbar { width: 6px; }
+.settings-panel-wrapper::-webkit-scrollbar-track { background: transparent; }
+.settings-panel-wrapper::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+.settings-panel-wrapper:hover::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); }
+
+/* Container - Holds the actual content */
+.settings-container {
+    max-width: 850px;
+    margin: 0 auto;
+    /* Padding: Top | Right | Bottom (extra for scroll) | Left */
+    padding: 2rem;
+    padding-bottom: 8rem; 
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Title */
+.settings-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--dark-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Card Style */
+.settings-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s, box-shadow 0.2s;
+    
+    display: block;
+    width: 100%;
+    flex-shrink: 0;
+    
+    /* Ensure visibility */
+    position: relative;
+    z-index: 1;
+}
+
+.settings-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Card Layout */
+.settings-card-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+}
+
+/* Icon Boxes */
+.settings-icon-box {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 10px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.settings-icon-box svg {
+    width: 2.2rem;
+    height: 2.2rem;
+}
+
+/* Icon Colors */
+.blue-icon { background-color: #eff6ff; color: #2563eb; }
+.green-icon { background-color: #f0fdf4; color: #16a34a; }
+.purple-icon { background-color: #faf5ff; color: #9333ea; }
+.orange-icon { background-color: #fff7ed; color: #ea580c; }
+
+/* Content */
+.settings-card-content {
+    flex: 1;
+    min-width: 0; 
+}
+
+.settings-card-content h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin: 0 0 0.4rem 0;
+}
+
+.settings-card-content p {
+    font-size: 1.3rem;
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+    line-height: 1.4;
+}
+
+/* Buttons */
+.btn-settings-primary {
+    background-color: var(--dark-color);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: opacity 0.2s;
+}
+.btn-settings-primary:hover { opacity: 0.9; }
+
+.btn-settings-outline {
+    background: transparent;
+    border: 1px solid #d1d5db;
+    color: var(--text-primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background-color 0.2s;
+}
+.btn-settings-outline:hover { background-color: #f3f4f6; }
+
+/* =========================================
+   DARK MODE OVERRIDES
+   ========================================= */
+
+body.dark-mode .settings-panel-wrapper {
+    background-color: #000000; 
+}
+
+body.dark-mode .settings-title {
+    color: #ffffff !important;
+    border-bottom-color: #2d2d30;
+}
+
+body.dark-mode .settings-card {
+    background-color: #1f2937; 
+    border-color: #374151;
+    box-shadow: none;
+}
+body.dark-mode .settings-card:hover {
+    background-color: #263042; 
+    border-color: #4b5563;
+}
+
+body.dark-mode .settings-card-content h3 { color: #ffffff !important; }
+body.dark-mode .settings-card-content p { color: #d1d5db !important; }
+
+/* Icon Colors (Dark Mode) */
+body.dark-mode .blue-icon { background-color: rgba(37, 99, 235, 0.2); color: #60a5fa; }
+body.dark-mode .green-icon { background-color: rgba(22, 163, 74, 0.2); color: #4ade80; }
+body.dark-mode .purple-icon { background-color: rgba(147, 51, 234, 0.2); color: #c084fc; }
+body.dark-mode .orange-icon { background-color: rgba(234, 88, 12, 0.2); color: #fb923c; }
+
+/* Button Fixes */
+body.dark-mode .btn-settings-primary {
+    background-color: #ffffff;
+    color: #000000;
+}
+body.dark-mode .btn-settings-primary:hover { background-color: #e5e7eb; }
+
+body.dark-mode .btn-settings-outline {
+    border-color: #4b5563;
+    color: #e5e7eb !important;
+}
+body.dark-mode .btn-settings-outline:hover {
+    background-color: #374151;
+    color: #ffffff !important;
+}
+
+/* Scrollbar for Dark Mode */
+body.dark-mode .settings-panel-wrapper:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.3);
+}

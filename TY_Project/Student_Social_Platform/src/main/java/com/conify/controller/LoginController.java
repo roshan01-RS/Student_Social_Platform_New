@@ -7,10 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// --- NEW IMPORTS ---
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
-// --- END NEW IMPORTS ---
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,29 +21,28 @@ public class LoginController {
     private LoginService loginService;
 
     @PostMapping("/login")
-    // FIXED: Added HttpServletResponse to the method
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginDTO loginDTO, HttpServletResponse httpResponse) {
         
         try {
-            // 1. LoginService now returns a Map containing the token
             Map<String, String> serviceResponse = loginService.loginUser(loginDTO);
             String token = serviceResponse.get("token");
 
-            // 2. Create a secure, HttpOnly cookie
             Cookie cookie = new Cookie("authToken", token);
-            cookie.setHttpOnly(true); // Prevents JavaScript from reading it (XSS protection)
-            cookie.setPath("/"); // Makes it available to all pages
-            cookie.setMaxAge(24 * 60 * 60); // 1 day expiration
-            // cookie.setSecure(true); // **IMPORTANT**: Uncomment this in production (when using HTTPS)
-                                      // It will not work on http://localhost
+            cookie.setHttpOnly(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(24 * 60 * 60); // 1 day
+            // cookie.setSecure(true); // Use in production (HTTPS)
             
-            // 3. Add the cookie to the HTTP response
             httpResponse.addCookie(cookie);
 
-            // 4. Remove the token from the JSON body (it's now in the cookie)
-            serviceResponse.remove("token");
+            // --- THIS IS THE FIX ---
+            // We must add the "status: success" to the JSON response
+            // so the frontend knows to redirect.
+            Map<String, String> jsonResponse = new HashMap<>();
+            jsonResponse.put("status", "success");
+            jsonResponse.put("message", "Login successful.");
             
-            return ResponseEntity.ok(serviceResponse);
+            return ResponseEntity.ok(jsonResponse);
 
         } catch (LoginService.InvalidCredentialsException e) {
             Map<String, String> response = new HashMap<>();

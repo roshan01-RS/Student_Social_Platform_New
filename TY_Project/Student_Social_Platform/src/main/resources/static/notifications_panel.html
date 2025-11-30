@@ -1,0 +1,35 @@
+<div class="notifications-layout">
+    <!-- Header -->
+    <div class="notifications-header-sticky">
+
+    <div class="notifications-header-combined">
+        
+        <!-- Tabs on the left -->
+        <div class="notifications-tabs">
+            <button class="notif-tab active" data-filter="all">All</button>
+            <button class="notif-tab" data-filter="unread">Unread</button>
+            <button class="notif-tab" data-filter="requests">Requests</button>
+        </div>
+
+        <!-- Mark all read on the right -->
+        <button id="btn-mark-all-read" class="btn-text-action">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" 
+                 viewBox="0 0 24 24" fill="none" stroke="currentColor" 
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+            Mark all read
+        </button>
+
+    </div>
+
+</div>
+
+    <!-- List Container -->
+    <div class="notifications-content-area" id="notifications-list-container">
+        <!-- Notifications injected here -->
+        <div class="spinner-wrapper">
+            <div class="spinner"></div>
+        </div>
+    </div>
+</div>

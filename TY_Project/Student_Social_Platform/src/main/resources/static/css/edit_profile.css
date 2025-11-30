@@ -1,0 +1,240 @@
+/* When editing, lock the outer panel and let only the inner body scroll */
+.profile-edit-root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main edit card */
+.edit-profile-page {
+  height: calc(100% + 5rem);
+    width: calc(100% + 5rem);
+    margin: -2.5rem;
+  max-width: 1100px;
+  
+  background: radial-gradient(circle at top left, #020617, #020617);
+  border-radius: 15px;
+  border: 1px solid rgba(51, 65, 85, 0.8);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.8);
+  display: flex;
+  flex-direction: column;
+  color: #f9fafb;
+
+  /* NEW → Global font increase */
+  font-size: 1.3rem;
+}
+
+/* HEADER */
+.edit-header {
+  padding: 1.3rem 2rem;
+  border-bottom: 1px solid #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  /* NEW → ensures cross button sticks right even in narrow layouts */
+  width: 100%;
+}
+
+.edit-close-btn {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.8rem;       /* NEW: slightly bigger for readability */
+  cursor: pointer;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+
+  /* NEW → force alignment to far right */
+  margin-left: auto;
+}
+
+.edit-close-btn:hover {
+  background-color: rgba(31, 41, 55, 0.9);
+  color: #e5e7eb;
+}
+
+/* BODY (ONLY SCROLL AREA) */
+.edit-body {
+  padding: 1.5rem 2rem 1.75rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* generic section spacing */
+.edit-section {
+  margin-bottom: 1.5rem;
+}
+
+/* PHOTO CARD */
+.edit-photo-card {
+  padding: 1.5rem 1.7rem;
+  border-radius: 1.4rem;
+  background: linear-gradient(135deg, #020617, #020617);
+  border: 1px solid #1f2937;
+}
+
+.edit-photo-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.edit-photo-avatar-wrapper {
+  flex-shrink: 0;
+  border-radius: 1.8rem;
+  overflow: hidden;
+  border: 4px solid #020617;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.8);
+}
+
+.edit-photo-avatar {
+  display: block;
+  width: 9rem;
+  height: 9rem;
+  object-fit: cover;
+}
+
+.edit-photo-text {
+  flex: 1;
+  min-width: 220px;
+}
+
+.edit-section-title {
+  margin: 0 0 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.edit-section-subtitle {
+  margin: 0 0 1rem;
+  font-size: 1.3rem;
+  color: #9ca3af;
+}
+
+.edit-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* BUTTONS (photo + footer) */
+.edit-btn,
+.edit-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+
+  /* NEW → larger buttons */
+  padding: 0.9rem 1.8rem;
+  font-size: 1.3rem;
+
+  border-radius: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+}
+
+.edit-btn-primary,
+.edit-footer-btn-primary {
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: #ffffff;
+  border: 1px solid transparent;
+  box-shadow: 0 14px 35px rgba(79, 70, 229, 0.7);
+}
+
+.edit-btn-primary:hover,
+.edit-footer-btn-primary:hover {
+  opacity: 0.95;
+}
+
+.edit-footer-btn-secondary {
+  background-color: #1f2937;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+}
+
+.edit-footer-btn-secondary:hover {
+  background-color: #111827;
+}
+
+.edit-btn-danger {
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+}
+
+.edit-btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+/* READ-ONLY FIELDS */
+.edit-field-label {
+  display: block;
+  font-size: 1.3rem;
+  color: #9ca3af;
+  margin-bottom: 0.45rem;
+}
+
+.edit-field-display {
+  min-height: 2.4rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.9rem;
+  background-color: #020617;
+  border: 1px solid #1f2937;
+  color: #f9fafb;
+  font-size: 1.3rem;
+}
+
+/* EDITABLE FIELDS (MAJOR / BIO) */
+.edit-section-highlight {
+  padding: 1.1rem 1.2rem;
+  border-radius: 1.2rem;
+  background: radial-gradient(circle at top left, #111827, #020617);
+  border: 1px solid #1f2937;
+}
+
+.edit-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.edit-input-field,
+.edit-textarea-field {
+  width: 100%;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #1f2937;
+  background-color: #020617;
+  color: #f9fafb;
+  font-size: 1.3rem;
+  outline: none;
+}
+
+.edit-input-field:focus,
+.edit-textarea-field:focus {
+  border-color: #6366f1;
+}
+
+/* NEW → Bio scrollable + fixed height */
+.edit-textarea-field {
+  resize: none;
+  overflow-y: auto;
+  max-height: 180px;
+  min-height: 100px;
+}
+
+/* FOOTER */
+.edit-footer {
+  padding: 1.1rem 2rem 1.5rem;
+  border-top: 1px solid #1f2937;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: #020617;
+}

@@ -961,10 +961,10 @@ body {
 .bday-select {
     width: 100%;
     padding: 1rem 1.2rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.923);
+    border: 1px solid rgba(8, 1, 1, 0.944);
     border-radius: 10px;
-    color: white;
+    color: rgb(237, 228, 228);
     font-size: 1.5rem;
     outline: none;
     -webkit-appearance: none;

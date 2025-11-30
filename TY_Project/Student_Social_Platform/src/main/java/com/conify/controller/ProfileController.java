@@ -2,13 +2,12 @@ package com.conify.controller;
 
 import com.conify.model.User;
 import com.conify.repository.UserRepository;
-import com.conify.service.JwtUtil;
+import com.conify.service.JwtUtil; // FIXED: Correct package
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.CookieValue; // <-- FIXED: Changed import
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,14 +26,14 @@ public class ProfileController {
     private UserRepository userRepository;
 
     @GetMapping("/my-profile")
-    public ResponseEntity<Map<String, String>> getMyProfile(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+    // FIXED: Changed from @RequestHeader to @CookieValue
+    public ResponseEntity<Map<String, String>> getMyProfile(
+            @CookieValue(name = "authToken", required = false) String token) {
         
-        // 1. Check if the Authorization header is valid
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Missing or invalid token"));
+        // 1. Check if the cookie (token) is present
+        if (token == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Missing authentication token"));
         }
-
-        String token = authHeader.substring(7); // Remove "Bearer " prefix
 
         try {
             // 2. Validate the token
@@ -46,7 +45,6 @@ public class ProfileController {
             String username = jwtUtil.getUsernameFromToken(token);
 
             // 4. Get the user's data from the database
-            //    (This method now exists in UserRepository)
             Optional<User> userOpt = userRepository.findByUsername(username); 
 
             if (userOpt.isEmpty()) {
@@ -55,7 +53,7 @@ public class ProfileController {
 
             User user = userOpt.get();
 
-            // 5. Send back ONLY the safe data (NEVER send the password hash)
+            // 5. Send back ONLY the safe data
             Map<String, String> profileData = new HashMap<>();
             profileData.put("username", user.getUsername());
             profileData.put("email", user.getEmail());

@@ -1,0 +1,233 @@
+/* =========================================
+   POST FEED STYLES
+   ========================================= */
+
+.post-feed-wrapper {
+    max-width: 600px; 
+    margin: 0 auto;   
+    width: 100%;
+    padding-bottom: 2rem;
+}
+
+.post-card {
+    padding: 1.5rem; 
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    margin-bottom: 1.5rem; 
+    transition: box-shadow 0.3s;
+}
+.post-card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+}
+
+.post-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.post-author-avatar {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    flex-shrink: 0;
+}
+
+.post-author-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.post-author-name {
+    color: var(--dark-color);
+    font-weight: 600;
+    font-size: 1.4rem; 
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.post-author-meta {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.post-menu-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.post-menu-btn {
+    background: none;
+    border: none;
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.post-menu-btn:hover {
+    background-color: #f3f4f6;
+}
+.post-menu-btn svg {
+    width: 1.8rem;
+    height: 1.8rem;
+    margin: auto;
+}
+
+/* Dropdown */
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 150px;
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    padding: 0.5rem 0;
+}
+.dropdown-menu.show {
+    display: block;
+}
+.dropdown-item {
+    display: block;
+    padding: 0.8rem 1.2rem;
+    font-size: 1.3rem;
+    color: var(--dark-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+.dropdown-item:hover {
+    background-color: #f3f4f6;
+}
+
+.post-content {
+    color: #1f2937;
+    margin-bottom: 1rem;
+    font-size: 1.4rem; 
+    line-height: 1.5;
+    white-space: pre-wrap; 
+    word-wrap: break-word;
+}
+
+.post-image {
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    max-height: 400px;
+    object-fit: cover;
+    border: 1px solid #eee;
+}
+
+/* Actions */
+.post-actions-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.post-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Space between Like, Comment, Share */
+}
+
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: none;
+    border: none;
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.3rem;
+    padding: 0.6rem 1rem;
+}
+.btn-ghost:hover {
+    color: var(--dark-color);
+    background-color: #f9fafb;
+}
+.btn-ghost svg {
+    width: 1.8rem;
+    height: 1.8rem;
+    transition: all 0.2s;
+}
+
+/* Like Active State */
+.like-btn.liked {
+    color: var(--error-red);
+}
+.like-btn.liked .icon-heart {
+    fill: var(--error-red);
+}
+
+/* Comment Hover State */
+.comment-btn:hover {
+    color: #3b82f6; /* Blue */
+    background-color: #eff6ff;
+}
+
+/* Bookmark Active State */
+.bookmark-btn.bookmarked {
+    color: var(--bright-cyan);
+}
+.bookmark-btn.bookmarked .icon-bookmark {
+    fill: var(--bright-cyan);
+}
+
+/* Dark Mode */
+body.dark-mode .post-card {
+    /* FIXED: Pitch Black Background for posts */
+    background-color: #000000;
+    border-color: #374151; /* Keep a subtle border */
+}
+body.dark-mode .post-author-name {
+    color: white;
+}
+body.dark-mode .post-content {
+    color: #d1d5db;
+}
+body.dark-mode .dropdown-menu {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+body.dark-mode .dropdown-item {
+    color: #d1d5db;
+}
+body.dark-mode .dropdown-item:hover {
+    background-color: #374151;
+}
+body.dark-mode .post-actions-wrapper {
+    border-top-color: #374151;
+}
+body.dark-mode .post-menu-btn:hover {
+    background-color: #374151;
+}
+body.dark-mode .btn-ghost {
+    color: #9ca3af;
+}
+body.dark-mode .btn-ghost:hover {
+    color: white;
+    background-color: #374151;
+}
+body.dark-mode .like-btn.liked {
+    color: var(--error-red);
+}
+body.dark-mode .comment-btn:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+body.dark-mode .bookmark-btn.bookmarked {
+    color: #3b82f6;
+}

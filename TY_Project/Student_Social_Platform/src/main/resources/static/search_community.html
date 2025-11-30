@@ -1,0 +1,45 @@
+<!-- search_community.html -->
+
+<div class="amm-header">
+    <h3>Join Communities</h3>
+    <button class="btn-icon js-close-search-community" aria-label="Close search modal">
+        ✕
+    </button>
+</div>
+
+<div class="amm-body">
+
+    <!-- Search Bar (Your EXACT design) -->
+    <div class="community-search-wrapper" style="margin-bottom: 1rem; position:relative;">
+        <svg class="community-search-icon" xmlns="http://www.w3.org/2000/svg" 
+             viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" 
+                d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" 
+                clip-rule="evenodd" />
+        </svg>
+
+        <input 
+            type="text" 
+            id="search-community-input" 
+            placeholder="Search communities..." 
+            class="community-search-input" 
+            style="width:100%;"
+        >
+    </div>
+
+    <h4 style="font-size:1.3rem; font-weight:600; color:#6b7280; margin-bottom:0.5rem;">
+        Suggested Communities
+    </h4>
+
+    <!-- MUST EXIST — JS RELIES ON THIS -->
+    <div id="community-search-results">
+        <div style="padding:20px; text-align:center; color:#888;">Loading...</div>
+    </div>
+
+</div>
+
+<div class="amm-footer">
+    <button class="btn-secondary js-close-search-community" style="flex:1;">
+        Close
+    </button>
+</div>

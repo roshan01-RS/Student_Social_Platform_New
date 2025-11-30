@@ -1,0 +1,15 @@
+{
+    "liveServer.settings.port": 5501,
+    "liveServer.settings.donotVerifyTags": true,
+    "liveServer.settings.donotShowInfoMsg": true,
+    "liveServer.settings.fullReload": false,
+    "liveServer.settings.ignoreFiles": [
+        ".vscode/**",
+        "**/*.db",
+        "**/*.db-shm",
+        "**/*.db-wal",
+        "**/db/**",
+        "**/build/**",
+        "**/.gradle/**"
+    ]
+}

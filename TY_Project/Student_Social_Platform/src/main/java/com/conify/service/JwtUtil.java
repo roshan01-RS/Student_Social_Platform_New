@@ -1,4 +1,4 @@
-package com.conify.service; // Make sure this package name is correct
+package com.conify.service; // <-- FIXED: This is the correct package
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -42,7 +42,7 @@ public class JwtUtil {
                 .compact();
     }
 
-    // --- NEW METHOD 1: Get Claims (the data inside) from Token ---
+    // --- Method to get data from Token ---
     private Jws<Claims> getClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
@@ -50,18 +50,17 @@ public class JwtUtil {
                 .parseClaimsJws(token);
     }
 
-    // --- NEW METHOD 2: Validate the token ---
+    // --- Method to validate the token ---
     public boolean validateToken(String token) {
         try {
             getClaims(token);
             return true;
         } catch (Exception e) {
-            // Catches expired, malformed, etc.
             return false;
         }
     }
 
-    // --- NEW METHOD 3: Get Username from Token ---
+    // --- Method to get Username from Token ---
     public String getUsernameFromToken(String token) {
         return getClaims(token).getBody().getSubject();
     }

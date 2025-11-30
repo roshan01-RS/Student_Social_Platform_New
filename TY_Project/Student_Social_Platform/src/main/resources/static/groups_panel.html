@@ -1,0 +1,65 @@
+<div class="groups-layout">
+
+   
+
+    <!-- 1. Groups List Sidebar -->
+
+    <div class="groups-list-sidebar">
+
+        <div class="groups-list-header">
+
+           
+
+            <!-- Header Top: Just the Create Button (Title Removed) -->
+
+            <div class="groups-header-top">
+
+                <button class="btn-create-group" id="create-group-btn" style="width: 100%; justify-content: center;">
+
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+
+                    Create New Group
+
+                </button>
+
+            </div>
+
+
+
+            <!-- Search Bar -->
+
+            <div class="chat-search-wrapper">
+
+                <svg class="chat-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></svg>
+
+                <input type="text" id="groups-search-input" placeholder="Search groups..." class="chat-search-input">
+
+            </div>
+
+        </div>
+
+       
+
+        <!-- Scrollable List -->
+
+        <div class="groups-list-scroll-area" id="groups-list-container">
+
+            <!-- Group items will be injected here by GroupsPanel.js -->
+
+        </div>
+
+    </div>
+
+
+
+    <!-- 2. Group Chat Window -->
+
+    <div class="chat-window" id="group-chat-window">
+
+        <!-- Chat header, messages, and input injected here -->
+
+        <div class="chat-placeholder"><p>Select a group to chat</p></div>
+
+    </div>
+
+</div>

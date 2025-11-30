@@ -1,0 +1,5 @@
+/* create_community.css - optional if you prefer CSS file vs inline styles */
+
+.create-community-backdrop { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:10008; background:rgba(0,0,0,0.5) }
+.create-community-modal { width:100%; max-width:640px; background:#0b0c0f; border-radius:12px; padding:18px; border:1px solid rgba(255,255,255,0.03); color:#e6eef8 }
+.create-community-modal input, .create-community-modal textarea, .create-community-modal select { width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.03); background:#0f1114; color:#e6eef8; }
