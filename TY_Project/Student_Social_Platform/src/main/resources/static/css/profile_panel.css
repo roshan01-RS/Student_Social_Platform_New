@@ -43,6 +43,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 2rem;
+    align-items: flex-start; 
 }
 
 .profile-avatar-col {
@@ -81,7 +82,7 @@
     height: 1.2rem;
 }
 
-/* Main info */
+/* Main info (Username, Major, Bio) */
 
 .profile-main-info {
     flex: 1 1 260px;
@@ -99,6 +100,7 @@
 
 .profile-main-title {
     display: flex;
+    flex-wrap: wrap; 
     align-items: center;
     gap: 0.75rem;
 }
@@ -160,20 +162,31 @@
 
 .profile-contact-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 0.9rem 1.5rem;
-    padding-top: 0.75rem;
+    /* FIX: Adjusted grid columns slightly to give more room for wrapping text */
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); 
+    /* FIX: Increased gap between items to match desired visual separation */
+    gap: 1.8rem 1.5rem; 
+    padding-top: 1.25rem; 
 }
 
 .profile-contact-item {
     display: flex;
-    align-items: center;
-    gap: 0.6rem;
+    /* FIX 1: Align to start to ensure icon sits next to text, not vertically centered */
+    align-items: flex-start; 
+    gap: 0.8rem; /* FIX 2: Increased gap between icon and text */
     font-size: 1.3rem;
     color: #e5e7eb;
+    /* Ensure text wrapping handles long college names */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 .profile-contact-item svg {
-    color: #9ca3af;
+    /* FIX 3: Ensure icon color is visible and size is correct */
+    color: #9ca3af; 
+    min-width: 18px; 
+    height: 18px; 
+    flex-shrink: 0; 
+    margin-top: 2px; /* Small vertical offset for optical alignment */
 }
 
 /* Edit Profile button */
@@ -192,6 +205,11 @@
     color: #ffffff;
     box-shadow: 0 12px 30px rgba(79, 70, 229, 0.4);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap; 
+    flex-shrink: 0;
+    /* Ensure high z-index and position is correct */
+    position: relative;
+    z-index: 5;
 }
 .profile-edit-btn svg {
     pointer-events: none;
@@ -218,7 +236,7 @@
     padding: 0.75rem 0;
     font-size: 1.3rem;
     font-weight: 500;
-    color: #3b82f6;
+    color: #d1d5db;
     cursor: pointer;
 }
 .profile-tab-button .profile-tab-underline {
@@ -277,8 +295,8 @@
 }
 
 .profile-status-icon-wrapper {
-    width: 3rem;
-    height: 3rem;
+    width: 3.5rem; 
+    height: 3.5rem;
     border-radius: 1rem;
     display: flex;
     align-items: center;

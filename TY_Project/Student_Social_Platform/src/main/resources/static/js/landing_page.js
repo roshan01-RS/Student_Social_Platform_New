@@ -753,7 +753,7 @@ function initializeLandingPage() {
                          showGlobalNotification(data.message || 'Login successful! Redirecting...', 'success');
                          
                          setTimeout(() => {
-                            window.location.href = 'home.html'; 
+                            window.location.href = 'home_dash.html'; 
                          }, 1000); // Wait 1 second for user to see message
                     
                     } else if (data.status === 'unverified') {

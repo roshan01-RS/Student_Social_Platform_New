@@ -1,164 +1,161 @@
-// EditProfile.js // Create a global object to hold our view renderers window.App = window.App || {};
+// EditProfile.js
+// This file contains the logic for the full-page profile editing interface.
+
+window.App = window.App || {};
+
 (function (App) {
 
-// Helper: Fetch HTML (Shared logic could be moved to a utils file, but duplicating for safety here)
-async function loadHtml(url) {
-    try {
-        console.log(`[EditProfile] Fetching ${url}...`);
-        const response = await fetch(url + '?v=' + new Date().getTime());
-        if (!response.ok) throw new Error(`Failed to load ${url}`);
-        return await response.text();
-    } catch (err) {
-        console.error("[EditProfile] HTML Load Error:", err);
-        return null;
-    }
-}
-
-// --- OPEN EDIT PROFILE MODAL ---
-App.openEditProfileModal = async (currentData, onSaveCallback) => {
-    console.log("Opening Edit Profile Modal...");
-
-    // Update the main header when modal opens (use App.setPageHeader if available)
-    try {
-        if (App.setPageHeader && typeof App.setPageHeader === 'function') {
-            App.setPageHeader('Edit Profile', 'Update your account details');
-        } else {
-            // fallback - try direct DOM update if helper not available
-            const t = document.getElementById('content-title');
-            const s = document.getElementById('content-subtitle');
-            if (t) t.textContent = 'Edit Profile';
-            if (s) s.textContent = 'Update your account details';
-        }
-    } catch (e) {
-        console.warn('Could not update header dynamically:', e);
-    }
-
-    const modalContainer = document.getElementById('reusable-modal');
-    const modalContent = document.getElementById('reusable-modal-content');
-    const closeBtn = modalContainer ? modalContainer.querySelector('.js-close-modal') : null;
-
-    if (!modalContainer || !modalContent) return;
-
-    const html = await loadHtml('edit_profile.html');
-    if (!html) return;
-
-    modalContent.innerHTML = html;
-
-    // Show Modal
-    modalContainer.style.display = 'flex';
-    setTimeout(() => modalContainer.classList.add('show'), 10);
-    modalContainer.classList.add('modal-large');
-
-    // --- Populate Data ---
-    const data = currentData || {};
-
-    // Avatar
-    const avatarPreview = modalContent.querySelector('#edit-avatar-preview') || modalContent.querySelector('#edit-avatar-img');
-    if (avatarPreview) avatarPreview.src = data.avatarUrl || avatarPreview.src || '';
-
-    // Read-Only Fields
-    const setText = (id, val) => {
-        const el = modalContent.querySelector(`#${id}`);
-        if (el) el.textContent = val || '...';
-    };
-
-    setText('edit-username-display', `@${data.username || ''}`);
-    setText('edit-email-display', data.email || '');
-    setText('edit-institute-display', data.institute || data.schoolName || '');
-    setText('edit-dob-display', data.dob || '');
-
-    // Editable Fields
-    const majorInput = modalContent.querySelector('#edit-major-input');
-    const bioInput = modalContent.querySelector('#edit-bio-textarea');
-
-    if (majorInput) majorInput.value = data.major || '';
-    if (bioInput) {
-        bioInput.value = data.bio || data.description || '';
-        // Make bio scrollable (prevent resizing)
-        bioInput.style.resize = 'none';
-        bioInput.style.overflowY = 'auto';
-    }
-
-    // --- Modal Logic ---
-    const closeModal = () => {
-        // Restore original header before closing
+    // Helper: Fetch HTML (used to load edit_profile.html content)
+    async function loadHtml(url) {
         try {
-            if (App.setPageHeader && typeof App.setPageHeader === 'function') {
-                App.setPageHeader('Profile', 'Manage your account and profile');
-            } else {
-                const t = document.getElementById('content-title');
-                const s = document.getElementById('content-subtitle');
-                if (t) t.textContent = 'Profile';
-                if (s) s.textContent = 'Manage your account and profile';
-            }
-        } catch (e) {
-            console.warn('Could not restore header:', e);
+            const response = await fetch(url + '?v=' + new Date().getTime());
+            if (!response.ok) throw new Error(`Failed to load ${url}`);
+            let text = await response.text();
+            return text;
+        } catch (err) {
+            console.error("[EditProfile] HTML Load Error:", err);
+            return null;
+        }
+    }
+
+    // --- MAIN RENDER FUNCTION ---
+    App.renderEditProfile = async (panel, currentData) => {
+        if (!panel) return;
+        
+        // 1. Update Header
+        App.setPageHeader('Edit Profile', 'Update your account details');
+
+        // 2. Fetch and Inject HTML Layout
+        const html = await loadHtml('edit_profile.html');
+        if (!html) return;
+
+        // Apply dark mode root class and inject layout
+        panel.classList.add('profile-edit-root');
+        panel.innerHTML = html;
+
+        // 3. Elements and Data Mapping
+        const data = currentData || {};
+
+        const majorInput = panel.querySelector('#edit-major-input');
+        const bioTextarea = panel.querySelector('#edit-bio-textarea');
+        const avatarImg = panel.querySelector('#edit-avatar-img');
+        const fileInput = panel.querySelector('#edit-avatar-file-input');
+
+        // Populate Read-Only Fields (Data from SQLite Sync)
+        const setText = (id, val) => {
+            const el = panel.querySelector(`#${id}`);
+            if (el) el.textContent = val || 'N/A';
+        };
+
+        // FIX: Ensure correct data fields are displayed, defaulting to "Not Provided" or "N/A"
+        setText('edit-display-username', data.username ? '@' + data.username : '@user');
+        setText('edit-display-email', data.email || 'N/A');
+        setText('edit-display-institute', data.institute || 'N/A');
+        setText('edit-display-dob', data.dob || 'Not Provided');
+        
+        // Populate Editable Fields (Data from Mongo)
+        if (majorInput) majorInput.value = data.major || '';
+        if (bioTextarea) bioTextarea.value = data.bio || '';
+        if (avatarImg) avatarImg.src = data.avatarUrl;
+
+        // 4. Listener Callbacks
+        const goBackToProfile = (e) => {
+            if (e) e.preventDefault();
+            // Go back to the main profile view
+            App.renderProfile(panel);
+        };
+        
+        // 5. Attach Listeners (Cancel/Close)
+        panel.querySelector('#edit-close-btn')?.addEventListener('click', goBackToProfile);
+        panel.querySelector('#edit-cancel-btn')?.addEventListener('click', goBackToProfile);
+
+        // 6. Avatar Upload/Delete Logic
+        if (fileInput && avatarImg) {
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const src = reader.result;
+                    avatarImg.src = src;
+                    // Store the new source, but don't send to API yet
+                    avatarImg.dataset.newSrc = src; 
+                };
+                reader.readAsDataURL(file);
+            });
         }
 
-        modalContainer.classList.remove('show');
-        setTimeout(() => {
-            modalContainer.style.display = 'none';
-            modalContent.innerHTML = '';
-        }, 300);
+        panel.querySelector('#edit-delete-photo-btn')?.addEventListener('click', () => {
+            const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400';
+            avatarImg.src = defaultAvatar;
+            avatarImg.dataset.newSrc = defaultAvatar;
+        });
+
+        // 7. Save Handler (Saves Editable Fields + Image Uploads)
+        panel.querySelector('#edit-profile-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = panel.querySelector('#edit-save-btn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const majorUpdate = majorInput ? majorInput.value.trim() : currentData.major;
+            const bioUpdate = bioTextarea ? bioTextarea.value.trim() : currentData.bio;
+            const updates = { major: majorUpdate, bio: bioUpdate };
+            let avatarUrlUpdate = currentData.avatarUrl; // Start with current URL
+
+            try {
+                // A) Handle Image Upload if a new file was selected
+                if (fileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    
+                    const imgRes = await App.fetchData('/api/my-profile/upload-photo', { 
+                        method: 'POST', 
+                        body: formData
+                        // NOTE: Do NOT set Content-Type for FormData uploads
+                    });
+                    
+                    avatarUrlUpdate = imgRes.url; // Use the path returned by the server
+                    
+                } else if (avatarImg.dataset.newSrc === 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400') {
+                    // B) Handle Delete/Default Avatar
+                    avatarUrlUpdate = avatarImg.dataset.newSrc;
+                }
+                
+                // C) Send Text Updates (Bio/Major) and potentially the avatar URL if it changed but wasn't a multipart upload
+                const textUpdates = { 
+                    major: majorUpdate, 
+                    bio: bioUpdate,
+                    // Only send avatarUrl if it was changed (either uploaded or reset to default)
+                    avatarUrl: avatarImg.dataset.newSrc ? avatarUrlUpdate : undefined
+                };
+
+                // Filter out undefined fields
+                const filteredUpdates = Object.keys(textUpdates).reduce((acc, key) => {
+                    if (textUpdates[key] !== undefined) {
+                        acc[key] = textUpdates[key];
+                    }
+                    return acc;
+                }, {});
+
+                await App.fetchData('/api/my-profile/update', {
+                   method: 'POST',
+                   headers: {'Content-Type': 'application/json'},
+                   body: JSON.stringify(filteredUpdates)
+                });
+
+                btn.textContent = 'Saved!';
+                setTimeout(() => goBackToProfile(), 500);
+
+            } catch (err) {
+                console.error("Save failed:", err);
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert("Save Failed. Check console for details.");
+            }
+        });
     };
 
-    // Close Handlers
-    if (closeBtn) {
-        // replace to avoid duplicate listeners
-        const newCloseBtn = closeBtn.cloneNode(true);
-        closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
-        newCloseBtn.addEventListener('click', closeModal);
-    }
-
-    modalContent.querySelector('#edit-close-btn')?.addEventListener('click', closeModal);
-    modalContent.querySelector('#edit-cancel-btn')?.addEventListener('click', closeModal);
-
-    // File Upload Handler
-    const fileInput = modalContent.querySelector('#edit-avatar-file-input');
-    if (fileInput && avatarPreview) {
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    avatarPreview.src = ev.target.result;
-                };
-                reader.readAsDataURL(e.target.files[0]);
-            }
-        });
-    }
-
-    // Delete Photo Handler
-    const deleteBtn = modalContent.querySelector('#edit-delete-photo-btn');
-    if (deleteBtn && avatarPreview) {
-        deleteBtn.addEventListener('click', () => {
-            const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400';
-            avatarPreview.src = defaultAvatar;
-        });
-    }
-
-    // Save Handler
-    const form = modalContent.querySelector('#edit-profile-form');
-    if (form) {
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-
-            const updatedData = {
-                major: majorInput ? majorInput.value : (data.major || ''),
-                description: bioInput ? bioInput.value : (data.description || ''),
-                avatarUrl: avatarPreview ? avatarPreview.src : (data.avatarUrl || '')
-            };
-
-            // call provided callback so parent view can update
-            if (onSaveCallback && typeof onSaveCallback === 'function') {
-                onSaveCallback(updatedData);
-            } else {
-                // fallback: simple UX feedback & close
-                alert('Profile updated (demo)');
-            }
-
-            // restore header and close modal
-            closeModal();
-        });
-    }
-};
-})(window.App);
+})(window.App = window.App || {});

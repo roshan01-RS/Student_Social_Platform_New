@@ -3,7 +3,9 @@ package com.conify.service;
 import com.conify.dto.RegisterDTO;
 import com.conify.dto.CheckUserDTO;
 import com.conify.model.User;
+import com.conify.model.mongo.UserProfile; // Mongo
 import com.conify.repository.UserRepository;
+import com.conify.repository.mongo.UserProfileRepository; // Mongo Repo
 import at.favre.lib.crypto.bcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.CannotAcquireLockException;
@@ -16,6 +18,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.Instant; // For Mongo
 import java.util.Random;
 
 @Service
@@ -23,11 +26,13 @@ public class RegisterService {
 
     @Autowired
     private UserRepository userRepository;
+    
+    @Autowired
+    private UserProfileRepository userProfileRepository; // Injected Mongo Repo
 
     @Autowired
     private EmailService emailService; 
 
-    // --- No change to this method ---
     @Transactional(readOnly = true)
     public void checkUserExists(CheckUserDTO checkUserDTO) throws Exception {
         String lowercaseEmail = checkUserDTO.getEmail().toLowerCase();
@@ -48,15 +53,13 @@ public class RegisterService {
         String lowercaseEmail = registerDTO.getEmail().toLowerCase();
         String lowercaseUsername = registerDTO.getUsername().toLowerCase();
 
-        // 1. Final check
+        // 1. Validation
         if (userRepository.existsByEmail(lowercaseEmail)) {
             throw new Exception("This email is already registered.");
         }
         if (userRepository.existsByUsername(lowercaseUsername)) {
             throw new Exception("This username is already taken.");
         }
-
-        // 2. Birthday Validation
         if (registerDTO.getBirthday() == null || registerDTO.getBirthday().isEmpty()) {
             throw new Exception("Birthday is required.");
         }
@@ -66,17 +69,13 @@ public class RegisterService {
             throw new Exception("You must be at least 11 years old to register.");
         }
 
-        // 3. Hash password
+        // 2. Hash & OTP
         String hashedPassword = BCrypt.withDefaults().hashToString(12, registerDTO.getPassword().toCharArray());
-
-        // 4. Generate OTP
         String otp = String.format("%04d", new Random().nextInt(9000) + 1000);
-
-        // 5. Date and Expiry Logic
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime expiryDate = now.plusYears(1);
 
-        // 6. Create new User entity
+        // 3. Create SQLite Entity
         User newUser = new User();
         newUser.setUsername(lowercaseUsername); 
         newUser.setEmail(lowercaseEmail); 
@@ -90,12 +89,15 @@ public class RegisterService {
         newUser.setAccountExpireDate(Timestamp.valueOf(expiryDate)); 
         newUser.setLastLoginAt(null);
 
-        // 7. Save to DB
-        userRepository.save(newUser);
+        // 4. Save to SQLite (Generate ID)
+        User savedUser = userRepository.save(newUser);
 
-        // 8. Send Email
+        // 5. SYNC TO MONGODB IMMEDIATELY
+        createMongoProfile(savedUser);
+
+        // 6. Send Email
         String emailSubject = "Your Conify Verification Code";
-        // --- FIXED: Changed emailBody to be HTML ---
+        // Fixed HTML Body
         String emailBody = "<p style=\"font-size: 18px; margin-bottom: 24px;\">Welcome to Conify!</p>"
                          + "<p style=\"color: #e5e7eb; margin-bottom: 24px;\">Your 4-digit verification code is:</p>"
                          + "<h2 style=\"font-size: 36px; color: white; letter-spacing: 4px; margin: 0 auto 24px auto; background-color: #374151; padding: 12px; border-radius: 12px; text-align: center; width: 150px;\">"
@@ -103,8 +105,36 @@ public class RegisterService {
                          + "</h2>"
                          + "<p style=\"color: #9ca3af; font-size: 14px;\">This code will expire in 15 minutes.</p>";
         
-        emailService.sendEmail(newUser.getEmail(), emailSubject, emailBody);
+        emailService.sendEmail(savedUser.getEmail(), emailSubject, emailBody);
 
-        return "OTP sent to " + newUser.getEmail();
+        return "OTP sent to " + savedUser.getEmail();
+    }
+
+    private void createMongoProfile(User sqlUser) {
+        try {
+            UserProfile profile = new UserProfile(sqlUser.getId());
+            
+            // Add '@' prefix
+            String displayUsername = "@" + sqlUser.getUsername();
+            
+            profile.setUsername(displayUsername);
+            profile.setEmail(sqlUser.getEmail());
+            profile.setSchoolName(sqlUser.getSchoolName());
+            profile.setBirthday(sqlUser.getBirthday());
+            profile.setJoinedAt(Instant.now());
+            
+            // FIX: Copy Expire Date
+            if (sqlUser.getAccountExpireDate() != null) {
+                profile.setAccountExpireDate(sqlUser.getAccountExpireDate().toInstant());
+            }
+
+            // Default avatar
+            profile.setAvatarUrl("https://ui-avatars.com/api/?name=" + sqlUser.getUsername() + "&background=random");
+            
+            userProfileRepository.save(profile);
+            System.out.println("✅ Created MongoDB Profile for: " + displayUsername);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to create MongoDB profile: " + e.getMessage());
+        }
     }
 }

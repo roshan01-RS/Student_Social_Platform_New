@@ -2,7 +2,7 @@ package com.conify.model;
 
 import jakarta.persistence.*;
 import java.sql.Timestamp;
-import java.time.LocalDate; // <-- NEW IMPORT
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "users")
@@ -24,7 +24,6 @@ public class User {
     @Column(name = "school_name")
     private String schoolName;
     
-    // --- NEW FIELD ADDED ---
     @Column(name = "birthday")
     private LocalDate birthday;
 
@@ -39,6 +38,7 @@ public class User {
     @Column(name = "registration_successful_at")
     private Timestamp registrationSuccessfulAt;
     
+    // This is the field we need to ensure is handled
     @Column(name = "account_expire_date")
     private Timestamp accountExpireDate;
 
@@ -62,11 +62,8 @@ public class User {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public String getSchoolName() { return schoolName; }
     public void setSchoolName(String schoolName) { this.schoolName = schoolName; }
-    
-    // --- NEW Getter/Setter for birthday ---
     public LocalDate getBirthday() { return birthday; }
     public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
-    
     public String getOtp() { return otp; }
     public void setOtp(String otp) { this.otp = otp; }
     public Timestamp getOtpCreatedAt() { return otpCreatedAt; }
@@ -77,8 +74,10 @@ public class User {
     public void setRegistrationSuccessfulAt(Timestamp registrationSuccessfulAt) {
         this.registrationSuccessfulAt = registrationSuccessfulAt;
     }
+    // Updated accessors for the required field
     public Timestamp getAccountExpireDate() { return accountExpireDate; }
     public void setAccountExpireDate(Timestamp accountExpireDate) { this.accountExpireDate = accountExpireDate; }
+    
     public Timestamp getLastLoginAt() { return lastLoginAt; }
     public void setLastLoginAt(Timestamp lastLoginAt) { this.lastLoginAt = lastLoginAt; }
     public String getResetToken() { return resetToken; }

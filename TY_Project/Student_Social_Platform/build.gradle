@@ -1,6 +1,6 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.2.3' // Use a stable version. 3.5.7 doesn't exist yet (current stable is ~3.2.x or 3.3.x)
+    id 'org.springframework.boot' version '3.2.3'
     id 'io.spring.dependency-management' version '1.1.4'
 }
 
@@ -8,8 +8,6 @@ group = 'com.conify'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    // Java 21 is the current LTS (Long Term Support) standard for modern Spring Boot.
-    // If you have issues with 24, switch this back to 21.
     sourceCompatibility = '21'
 }
 
@@ -18,29 +16,30 @@ repositories {
 }
 
 dependencies {
-    // --- SPRING BOOT STARTERS (Replace most of your old manual setup) ---
-    implementation 'org.springframework.boot:spring-boot-starter-web'      // Replaces embedded Tomcat & Servlet API
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa' // Replaces raw JDBC
-    implementation 'org.springframework.boot:spring-boot-starter-mail'     // Replaces jakarta.mail & angus-mail
+    // --- WEB & AUTH ---
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.retry:spring-retry'
-    // --- CRITICAL: SQLite Support ---
-    // Spring Boot needs the driver to connect
+    
+    // --- DATABASE: SQLite (Identity) ---
     runtimeOnly 'org.xerial:sqlite-jdbc:3.45.1.0'
-    // JPA needs this dialect to specifically "speak" SQLite SQL
     implementation 'org.hibernate.orm:hibernate-community-dialects:6.4.4.Final'
 
-    // --- YOUR SPECIFIC TOOLS (Brought over from old project) ---
-    // Kept these so you don't have to rewrite your hashing or JSON logic immediately.
+    // --- DATABASE: MongoDB (Content & Profile) ---
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+
+    // --- REAL-TIME: WebSockets ---
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
+
+    // --- UTILS ---
     implementation 'at.favre.lib:bcrypt:0.10.2'
     implementation 'com.google.code.gson:gson:2.10.1'
-
-    // --- TESTING ---
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-    // JJWT Dependency for creating and verifying JWT tokens
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5' // Use jjwt-jackson if using Jackson for JSON parsing
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 tasks.named('test') {

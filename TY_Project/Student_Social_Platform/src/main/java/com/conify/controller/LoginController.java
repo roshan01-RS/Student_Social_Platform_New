@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.HashMap;
@@ -21,23 +22,27 @@ public class LoginController {
     private LoginService loginService;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginDTO loginDTO, HttpServletResponse httpResponse) {
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginDTO loginDTO, 
+                                                     HttpServletRequest request,
+                                                     HttpServletResponse httpResponse) {
         
         try {
-            Map<String, String> serviceResponse = loginService.loginUser(loginDTO);
+            // Get IP Address
+            String ipAddress = request.getHeader("X-Forwarded-For");
+            if (ipAddress == null || ipAddress.isEmpty()) {
+                ipAddress = request.getRemoteAddr();
+            }
+
+            Map<String, String> serviceResponse = loginService.loginUser(loginDTO, ipAddress);
             String token = serviceResponse.get("token");
 
             Cookie cookie = new Cookie("authToken", token);
             cookie.setHttpOnly(true);
             cookie.setPath("/");
-            cookie.setMaxAge(24 * 60 * 60); // 1 day
-            // cookie.setSecure(true); // Use in production (HTTPS)
+            cookie.setMaxAge(24 * 60 * 60); 
             
             httpResponse.addCookie(cookie);
 
-            // --- THIS IS THE FIX ---
-            // We must add the "status: success" to the JSON response
-            // so the frontend knows to redirect.
             Map<String, String> jsonResponse = new HashMap<>();
             jsonResponse.put("status", "success");
             jsonResponse.put("message", "Login successful.");
@@ -45,23 +50,11 @@ public class LoginController {
             return ResponseEntity.ok(jsonResponse);
 
         } catch (LoginService.InvalidCredentialsException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
-
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "message", e.getMessage()));
         } catch (LoginService.NotVerifiedException e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "unverified"); 
-            response.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("status", "unverified", "message", e.getMessage()));
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "Login failed due to server error.");
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status", "error", "message", "Login failed."));
         }
     }
 }
