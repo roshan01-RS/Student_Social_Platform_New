@@ -7,5 +7,6 @@ import java.util.List;
 
 @Repository
 public interface ConversationRepository extends MongoRepository<Conversation, String> {
+    // Used by ChatController to fetch all conversations involving a user
     List<Conversation> findByParticipantsContaining(Long userId);
 }

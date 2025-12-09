@@ -1,8 +1,9 @@
-// ProfilePanel.js
+// ProfilePanel.js  
 // Global namespace
 window.App = window.App || {};
 
 (function (App) {
+    // Resolve API base dynamically:
     const resolveApiBase = () => {
         try {
             if (window.AppConfig && typeof window.AppConfig.API_BASE === 'string' && window.AppConfig.API_BASE.trim()) {
@@ -15,11 +16,14 @@ window.App = window.App || {};
         } catch (e) {
             console.warn('resolveApiBase error', e);
         }
-        return ''; 
+        return ''; // allow relative paths
     };
 
     const API_BASE = resolveApiBase();
 
+    // ------------------------------
+    // SHARED HELPERS
+    // ------------------------------
     App.fetchData = async (endpoint, opts = {}) => {
         const isAbsolute = typeof endpoint === 'string' && /^(https?:)?\/\//i.test(endpoint);
         const url = isAbsolute ? endpoint : `${API_BASE}${endpoint}`;
@@ -27,7 +31,9 @@ window.App = window.App || {};
         const fetchOptions = Object.assign({
             method: 'GET',
             credentials: 'include',
-            headers: { 'Accept': 'application/json' }
+            headers: {
+                'Accept': 'application/json'
+            }
         }, opts);
 
         const response = await fetch(url, fetchOptions);
@@ -41,13 +47,18 @@ window.App = window.App || {};
                 } else {
                     bodyText = await response.text();
                 }
-            } catch (e) { bodyText = ''; }
-            const err = new Error(`Failed to fetch ${url} (${response.status})`);
+            } catch (e) {
+                bodyText = '';
+            }
+            const err = new Error(`Failed to fetch ${url} (${response.status})${bodyText ? `: ${bodyText}` : ''}`);
             err.status = response.status;
+            err.response = response;
             throw err;
         }
         const contentType = response.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) return response.json();
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
         return response.text();
     };
 
@@ -64,40 +75,80 @@ window.App = window.App || {};
     App.openModalFromUrl = async (url, options = {}) => {
         const modal = document.getElementById('reusable-modal');
         const modalContent = document.getElementById('reusable-modal-content');
-        if (!modal || !modalContent) return;
+        if (!modal || !modalContent) {
+            console.warn('Modal container not found (#reusable-modal / #reusable-modal-content).');
+            return;
+        }
 
         try {
             const resp = await fetch(url + '?v=' + new Date().getTime());
-            if (!resp.ok) throw new Error('Failed');
-            modalContent.innerHTML = await resp.text();
+            if (!resp.ok) throw new Error('Failed to load: ' + url);
+            const html = await resp.text();
+            modalContent.innerHTML = html;
+
             modal.style.display = 'flex';
             setTimeout(() => modal.classList.add('show'), 10);
             if (options.large) modal.classList.add('modal-large');
 
-            const close = () => {
-                modal.classList.remove('show');
-                setTimeout(() => { modal.style.display = 'none'; modalContent.innerHTML = ''; }, 250);
+            const closeBtns = modal.querySelectorAll('.js-close-modal, .auth-modal-close-btn, [data-modal-close], #edit-close-btn, #edit-cancel-btn');
+            closeBtns.forEach(btn => {
+                const replacement = btn.cloneNode(true);
+                btn.parentNode.replaceChild(replacement, btn);
+                replacement.addEventListener('click', () => {
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.classList.remove('modal-large');
+                        modalContent.innerHTML = '';
+                    }, 250);
+                });
+            });
+
+            const onBackdropClick = (ev) => {
+                if (ev.target === modal) {
+                    modal.classList.remove('show');
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.classList.remove('modal-large');
+                        modalContent.innerHTML = '';
+                    }, 250);
+                    modal.removeEventListener('click', onBackdropClick);
+                }
             };
-            
-            modal.querySelectorAll('.js-close-modal, #edit-close-btn, #edit-cancel-btn').forEach(btn => 
-                btn.addEventListener('click', close));
-            
-            modal.onclick = (e) => { if(e.target === modal) close(); };
-            
+            modal.addEventListener('click', onBackdropClick);
+
             return modalContent;
-        } catch (e) { console.error(e); }
+        } catch (err) {
+            console.error('openModalFromUrl error:', err);
+            modalContent.innerHTML = `<div style="padding:1.2rem;color:#f9fafb">Failed to open content.</div>`;
+            modal.style.display = 'flex';
+            setTimeout(() => modal.classList.add('show'), 10);
+            return modalContent;
+        }
     };
 
-    // ... (Friends Modal Logic - kept as is) ...
     App.openFriendsModal = async () => {
-        /* ... Existing Friends Modal Code ... */
+        // ... (Existing Friends Modal Code) ...
     };
 
     App.setPageHeader = (title, subtitle) => {
         const t = document.getElementById('content-title') || document.getElementById('main-view-title');
         const s = document.getElementById('content-subtitle') || document.getElementById('main-view-subtitle');
+
         if (t) t.textContent = title;
         if (s) s.textContent = subtitle || '';
+    };
+
+    // --- NEW HELPER: Date formatter for SQL dates ---
+    const formatExpireDate = (d) => {
+        if (!d) return 'N/A';
+        try { 
+            // Ensures correct date formatting from ISO string or timestamp
+            return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); 
+        }
+        catch (e) { 
+            return 'N/A'; 
+        }
     };
 
     // ------------------------------
@@ -119,36 +170,27 @@ window.App = window.App || {};
             return;
         }
 
-        // --- UPDATED FORMATTERS ---
-        const formatJoinedDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A';
-        
-        const formatDob = (d) => {
-            if (!d) return ''; 
-            try { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
-            catch (e) { return d; }
-        };
-        
-        const formatExpireDate = (d) => {
-            if (!d) return '';
-            try { return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }); }
-            catch (e) { return ''; }
-        };
-
-        // --- UPDATED DATA MAPPING (REMOVED HARDCODED DEFAULTS) ---
         const profileData = {
             username: data.username ? data.username.replace(/^@/, '') : 'user',
-            major: data.major || '', // No longer defaults to "Computer Science Major"
+            major: data.major || '', 
             institute: data.schoolName || 'My University', 
             email: data.email || 'N/A',
-            joinedDate: formatJoinedDate(data.joinedAt),
-            dob: formatDob(data.birthday), 
+            joinedDate: (data.joinedAt) ? new Date(data.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A',
+            dob: (data.birthday) ? new Date(data.birthday + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A', 
             avatarUrl: data.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400',
             isVerified: data.isVerified === 1 || data.isVerified === true,
+            verificationStatus: data.verificationStatus,
+            idCardUrl: data.idCardUrl,
+            receiptUrl: data.receiptUrl,
+            // Account Expire date comes from Mongo profile, synced from SQLite
             accountExpireDate: formatExpireDate(data.accountExpireDate),
-            bio: data.bio || '' // Defaults to empty string for editing
+            bio: data.bio || ''
         };
 
-        // For display in the profile card, we use a placeholder text if bio is empty
+        if (App.syncDocumentVerificationState) {
+            App.syncDocumentVerificationState(profileData);
+        }
+
         const displayBio = profileData.bio || 'Tell us about yourself...';
 
         panel.innerHTML = `
@@ -200,7 +242,6 @@ window.App = window.App || {};
                     </div>
                 </div>
                 
-                <!-- Tab Placeholders -->
                  <div class="profile-tabs-row">
                     <button id="profile-tab-overview" class="profile-tab-button profile-tab-active">Overview<span class="profile-tab-underline"></span></button>
                     <button id="profile-tab-friends" class="profile-tab-button">Friends (3)<span class="profile-tab-underline"></span></button>
@@ -208,14 +249,8 @@ window.App = window.App || {};
                 
                 <div id="profile-tab-overview-content" class="profile-tab-section">
                      <div class="profile-overview-grid">
-                        <div class="profile-status-card verification-card">
-                             <div class="profile-status-header">
-                                <div class="profile-status-icon-wrapper verification-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg></div>
-                                <div><h3 class="profile-status-title">Verification Status</h3><span class="profile-pill profile-pill-verified-soft">Verified Student</span></div>
-                             </div>
-                             <p class="profile-status-text">Your student status has been verified.</p>
-                             <p class="profile-status-highlight">✓ Valid till ${profileData.accountExpireDate}</p>
-                        </div>
+                        <div id="doc-verification-wrapper"></div>
+
                         <div class="profile-status-card logout-card">
                              <div class="profile-status-header">
                                 <div class="profile-status-icon-wrapper logout-icon"><svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></div>
@@ -229,7 +264,16 @@ window.App = window.App || {};
             </div>
         `;
 
-        // --- LISTENERS ---
+        // Pass the expiration date to the helper function so it can render it in the card
+        // Note: The helper function in DocumentVerification.js handles rendering, we just ensure data is synced.
+        
+        const docWrapper = panel.querySelector('#doc-verification-wrapper');
+        if (docWrapper && App.renderDocumentVerificationCard) {
+            App.renderDocumentVerificationCard(docWrapper);
+        } else {
+             if(docWrapper) docWrapper.innerHTML = '<div>Loading verification status...</div>';
+        }
+
         const editBtn = panel.querySelector('#profile-edit-btn');
         if (editBtn) {
             editBtn.addEventListener('click', (e) => {
@@ -242,7 +286,6 @@ window.App = window.App || {};
             });
         }
 
-        // ... (Tabs and Logout listeners same as before) ...
         const logoutBtn = panel.querySelector('#profile-logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async (e) => {

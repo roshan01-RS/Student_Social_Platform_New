@@ -3,6 +3,12 @@ window.App = window.App || {};
 
 (function(App) {
 
+    const API_BASE = 'http://localhost:8000';
+    let stompClient = null;
+    let notifications = [];
+    let currentFilter = 'all';
+    let userId = null;
+
     // --- Helper: Fetch HTML ---
     async function loadHtml(url) {
         try {
@@ -10,39 +16,114 @@ window.App = window.App || {};
             if (!response.ok) throw new Error(`Failed to load ${url}`);
             return await response.text();
         } catch (err) {
-            console.error("[Notifications] HTML Load Error:", err);
             return null;
         }
     }
 
-    // --- Mock Data (Added Friend Request) ---
-    let notifications = [
-        { id: 1, type: 'like', user: 'Sarah Johnson', text: 'liked your post "Final Project Ideas"', time: '2m ago', read: false },
-        { id: 2, type: 'friend_request', user: 'James Smith', text: 'sent you a friend request', time: '15m ago', read: false },
-        { id: 3, type: 'comment', user: 'Mike Chen', text: 'commented: "This looks amazing! Great work."', time: '1h ago', read: false },
-        { id: 4, type: 'follow', user: 'Emily Davis', text: 'started following you', time: '3h ago', read: true },
-        { id: 5, type: 'system', user: 'System', text: 'Your password was changed successfully.', time: '1d ago', read: true }
-    ];
+    // --- Helper: Get Current User ID ---
+    async function getCurrentUserId() {
+        if (userId) return userId;
+        try {
+            const res = await App.fetchData('/api/my-profile');
+            if (res.userId) { userId = res.userId; return userId; }
+        } catch (e) { console.error(e); }
+        return null;
+    }
 
-    let currentFilter = 'all';
+    // --- WebSocket Connection ---
+    function connectWebSocket() {
+        if (stompClient && stompClient.connected) return;
+        if (!userId) return;
 
-    // --- Helper: Update Mobile/Desktop Nav Badge ---
+        if (!window.SockJS || !window.Stomp) return;
+
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null; 
+
+        stompClient.connect({}, function(frame) {
+            console.log('[Notifications] Connected to WebSocket');
+            
+            // Subscribe to private notifications
+            stompClient.subscribe(`/user/${userId}/queue/notifications`, function(messageOutput) {
+                console.log("[Notifications] New Alert:", messageOutput.body);
+                const newNotif = JSON.parse(messageOutput.body);
+                handleIncomingNotification(newNotif);
+            });
+
+        }, function(error) {
+            console.error('[Notifications] WebSocket Error:', error);
+        });
+    }
+
+    function handleIncomingNotification(n) {
+        // Map fields
+        const mapped = {
+            id: n.id,
+            type: mapNotificationType(n.type),
+            user: n.senderSnapshot ? n.senderSnapshot.username : 'System',
+            avatar: n.senderSnapshot ? n.senderSnapshot.avatarUrl : null,
+            text: n.message,
+            time: 'Just now',
+            read: false,
+            senderId: n.senderId
+        };
+
+        // Add to list
+        notifications.unshift(mapped);
+        
+        // Update UI if panel is open
+        const container = document.getElementById('notifications-list-container');
+        if (container) {
+            renderList(document.querySelector('.notifications-layout'));
+        }
+
+        // Update Badge
+        updateMobileBadge();
+        
+        // Show global toast
+        if(App.showGlobalNotification) {
+            App.showGlobalNotification(`New notification from ${mapped.user}`, 'success');
+        }
+    }
+
+    function timeAgo(dateString) {
+        if (!dateString) return 'Just now';
+        const date = new Date(dateString);
+        const now = new Date();
+        const seconds = Math.floor((now - date) / 1000);
+        if (seconds < 60) return 'Just now';
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + "y ago";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + "mo ago";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + "d ago";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + "h ago";
+        interval = seconds / 60;
+        if (interval > 1) return Math.floor(interval) + "m ago";
+        return "Just now";
+    }
+
+    function mapNotificationType(backendType) {
+        if (!backendType) return 'system';
+        const type = backendType.toString().toUpperCase();
+        if (type === 'FRIEND_REQ') return 'friend_request';
+        if (type === 'FRIEND_ACCEPT') return 'system'; 
+        return type.toLowerCase();
+    }
+
     function updateMobileBadge() {
         const unreadCount = notifications.filter(n => !n.read).length;
-        
-        // Selector for the mobile navigation item (Notifications)
-        // Assuming the link has href="#notifications"
         const navLinks = document.querySelectorAll('a[href="#notifications"]');
         
         navLinks.forEach(link => {
-            // Check if badge already exists
             let badge = link.querySelector('.nav-notification-badge');
-            
             if (unreadCount > 0) {
                 if (!badge) {
                     badge = document.createElement('div');
                     badge.className = 'nav-notification-badge';
-                    // Ensure relative positioning on parent for absolute badge
                     link.style.position = 'relative'; 
                     link.appendChild(badge);
                 }
@@ -56,9 +137,11 @@ window.App = window.App || {};
 
     // --- Main Render Function ---
     App.renderNotifications = async (panel) => {
-        console.log("Rendering Notifications Panel...");
+        // Ensure user ID is loaded for WS connection
+        await getCurrentUserId();
+        connectWebSocket();
         
-        // 1. Load Layout
+        console.log("Rendering Notifications Panel...");
         const html = await loadHtml('notifications_panel.html');
         if (!html) {
             panel.innerHTML = '<p class="error-msg">Error loading notifications.</p>';
@@ -66,13 +149,28 @@ window.App = window.App || {};
         }
         panel.innerHTML = html;
 
-        // 2. Render List
-        renderList(panel);
-        updateMobileBadge(); // Update badge on load
+        const container = panel.querySelector('#notifications-list-container');
+        container.innerHTML = '<div class="spinner-wrapper"><div class="spinner"></div></div>';
 
-        // 3. Event Listeners
-        
-        // Tabs
+        try {
+            const rawData = await App.fetchData('/api/notifications');
+            notifications = rawData.map(n => ({
+                id: n.id, 
+                type: mapNotificationType(n.type),
+                user: n.senderSnapshot ? n.senderSnapshot.username : 'System',
+                avatar: n.senderSnapshot ? n.senderSnapshot.avatarUrl : null,
+                text: n.message,
+                time: timeAgo(n.createdAt),
+                read: n.read,
+                senderId: n.senderId 
+            }));
+        } catch (err) {
+            console.error("Failed to fetch notifications", err);
+        }
+
+        renderList(panel);
+        updateMobileBadge();
+
         const tabs = panel.querySelectorAll('.notif-tab');
         tabs.forEach(tab => {
             tab.addEventListener('click', () => {
@@ -83,23 +181,29 @@ window.App = window.App || {};
             });
         });
 
-        // Mark All Read
         const markAllBtn = panel.querySelector('#btn-mark-all-read');
         if(markAllBtn) {
-            markAllBtn.addEventListener('click', () => {
+            markAllBtn.addEventListener('click', async () => {
+                // Optimistic update
                 notifications.forEach(n => n.read = true);
                 renderList(panel);
                 updateMobileBadge();
+                
+                // Call Backend
+                try {
+                    await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                } catch(e) { console.error(e); }
             });
         }
     };
 
-    // --- Render List Helper ---
     function renderList(panel) {
         const container = panel.querySelector('#notifications-list-container');
         if (!container) return;
 
-        // Filter Logic
         let filtered = notifications;
         if (currentFilter === 'unread') {
             filtered = notifications.filter(n => !n.read);
@@ -117,7 +221,6 @@ window.App = window.App || {};
         }
 
         container.innerHTML = filtered.map(n => {
-            // Icons map
             let icon = '';
             let iconClass = '';
             switch(n.type) {
@@ -129,13 +232,13 @@ window.App = window.App || {};
                 default: icon = '🔔'; iconClass = 'notif-type-system';
             }
 
-            // Friend Request Buttons Logic
             let contentHtml = `<p class="notif-text"><strong>${n.user}</strong> ${n.text}</p>`;
+            
             if (n.type === 'friend_request') {
                 contentHtml += `
                 <div class="friend-request-actions">
-                    <button class="btn-confirm js-confirm-req" data-id="${n.id}">Accept</button>
-                    <button class="btn-delete-req js-delete-req" data-id="${n.id}">Reject</button>
+                    <button class="btn-confirm js-confirm-req" data-id="${n.id}" data-sender="${n.senderId}">Accept</button>
+                    <button class="btn-delete-req js-delete-req" data-id="${n.id}" data-sender="${n.senderId}">Reject</button>
                 </div>`;
             }
 
@@ -153,70 +256,66 @@ window.App = window.App || {};
                     <button class="btn-icon-sm js-delete-notif" data-id="${n.id}" title="Delete">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
-                    ${!n.read ? `
-                    <button class="btn-icon-sm js-read-notif" data-id="${n.id}" title="Mark as read">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                    </button>` : ''}
                 </div>
             </div>
             `;
         }).join('');
 
         // Attach Listeners
+        container.querySelectorAll('.js-confirm-req').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const notifId = btn.dataset.id;
+                const senderId = btn.dataset.sender;
+                btn.textContent = '...';
+                try {
+                    const res = await fetch('/api/friendship/respond', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'credentials': 'include' },
+                        body: JSON.stringify({ requesterId: parseInt(senderId), action: 'accept' })
+                    });
+                    if (res.ok) {
+                        notifications = notifications.filter(n => n.id !== notifId);
+                        renderList(panel);
+                        updateMobileBadge();
+                    }
+                } catch(err) {}
+            });
+        });
+
+        container.querySelectorAll('.js-delete-req').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const notifId = btn.dataset.id;
+                const senderId = btn.dataset.sender;
+                try {
+                     const res = await fetch('/api/friendship/respond', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'credentials': 'include' },
+                        body: JSON.stringify({ requesterId: parseInt(senderId), action: 'reject' })
+                    });
+                    if (res.ok) {
+                        notifications = notifications.filter(n => n.id !== notifId);
+                        renderList(panel);
+                        updateMobileBadge();
+                    }
+                } catch(err) {}
+            });
+        });
         
-        // 1. Delete Notification
         container.querySelectorAll('.js-delete-notif').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
+                const id = btn.dataset.id;
                 notifications = notifications.filter(n => n.id !== id);
                 renderList(panel);
                 updateMobileBadge();
             });
         });
-
-        // 2. Mark Read
-        container.querySelectorAll('.js-read-notif').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
-                const notif = notifications.find(n => n.id === id);
-                if (notif) {
-                    notif.read = true;
-                    renderList(panel);
-                    updateMobileBadge();
-                }
-            });
-        });
-
-        // 3. Friend Request: Confirm
-        container.querySelectorAll('.js-confirm-req').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
-                alert("Friend request accepted!");
-                // In real app: api call
-                notifications = notifications.filter(n => n.id !== id); // Remove notification after action
-                renderList(panel);
-                updateMobileBadge();
-            });
-        });
-
-        // 4. Friend Request: Delete
-        container.querySelectorAll('.js-delete-req').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
-                notifications = notifications.filter(n => n.id !== id); // Just remove it
-                renderList(panel);
-                updateMobileBadge();
-            });
-        });
         
-        // 5. Card Click (Mark read)
         container.querySelectorAll('.notification-item.unread').forEach(item => {
              item.addEventListener('click', () => {
-                 const id = parseInt(item.id.replace('notif-', ''));
+                 const id = item.id.replace('notif-', '');
                  const notif = notifications.find(n => n.id === id);
                  if (notif) {
                     notif.read = true;
@@ -228,7 +327,17 @@ window.App = window.App || {};
     }
 
     // Initialize badge on script load (in case notification panel isn't open yet)
-    // Wait a moment for DOM nav items to exist
-    setTimeout(updateMobileBadge, 1000);
+    setTimeout(async () => {
+        await getCurrentUserId();
+        if(userId) {
+             connectWebSocket();
+             // Initial fetch for badge count
+             try {
+                const rawData = await App.fetchData('/api/notifications');
+                notifications = rawData.map(n => ({ ...n, read: n.read }));
+                updateMobileBadge();
+             } catch(e){}
+        }
+    }, 1500);
 
 })(window.App);

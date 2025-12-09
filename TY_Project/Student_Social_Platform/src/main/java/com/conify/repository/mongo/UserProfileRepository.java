@@ -10,7 +10,12 @@ import java.util.Optional;
 public interface UserProfileRepository extends MongoRepository<UserProfile, String> {
     Optional<UserProfile> findByUserId(Long userId);
     Optional<UserProfile> findByUsername(String username);
+    
+    // Needed for signup validation against existing profiles
+    Optional<UserProfile> findByEmail(String email);
 
-    // --- FIX: Added method for real-time username search ---
     List<UserProfile> findByUsernameStartingWithIgnoreCase(String usernamePrefix);
+    
+    // CRITICAL FIX: Add the missing query method used by AdminController and AdminService
+    List<UserProfile> findByVerificationStatus(String status);
 }

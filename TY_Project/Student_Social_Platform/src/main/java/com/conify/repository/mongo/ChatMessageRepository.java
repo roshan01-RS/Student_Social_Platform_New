@@ -8,4 +8,9 @@ import java.util.List;
 @Repository
 public interface ChatMessageRepository extends MongoRepository<ChatMessage, String> {
     List<ChatMessage> findByConversationIdOrderByTimestampAsc(String conversationId);
+    
+    // NEW: Find unread messages for a recipient in a conversation
+    List<ChatMessage> findByConversationIdAndRecipientIdAndStatusNot(
+        String conversationId, Long recipientId, ChatMessage.MessageStatus status
+    );
 }

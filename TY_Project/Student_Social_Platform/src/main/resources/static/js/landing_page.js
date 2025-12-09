@@ -101,7 +101,7 @@ function initializeLandingPage() {
     }
 
     // =========================================
-    // 3. UNIFIED EVENT LISTENER
+    // 3. UNIFIED EVENT LISTENER (FIXED: Removed backdrop click closing)
     // =========================================
     document.addEventListener('click', (e) => {
         const target = e.target;
@@ -109,7 +109,9 @@ function initializeLandingPage() {
         if (target.closest('.js-open-login')) { e.preventDefault(); openModal('login'); }
         else if (target.closest('.js-open-signup')) { e.preventDefault(); otpContext = 'signup'; openModal('signup'); }
         else if (target.closest('.js-open-forgot')) { e.preventDefault(); otpContext = 'reset'; openModal('forgot'); }
-        else if (target.closest('.js-close-modal') || target.classList.contains('auth-modal-backdrop')) {
+        // FIX: Removed condition `|| target.classList.contains('auth-modal-backdrop')`
+        // Now only .js-close-modal buttons close the modal
+        else if (target.closest('.js-close-modal')) {
             e.preventDefault();
             closeAllModals();
         }

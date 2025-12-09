@@ -8,42 +8,60 @@
     <!-- Link to the main stylesheet (will load from cache if available) -->
     <link rel="stylesheet" href="css/global.css"> 
     
-    <!-- 
-      FIX: Inlined styles to guarantee visibility.
-      This ensures the page is readable even if global.css fails 
-      or its complex styles (like text-clip) don't render.
-    -->
     <style>
-        /* Base styles for the offline page */
-        body.offline-page {
+        /* FIX 1: Applied styles to 'body' generally to ensure full page coverage 
+           if the class isn't perfectly matched.
+        */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000; /* Fallback background */
+        }
+
+        /* Base styles for the offline page wrapper */
+        .offline-page {
             background-color: #000000;
-            color: #ffffff;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 1rem;
-            height: 100vh;
+            
+            /* UPDATED: Increased padding to 6rem top/bottom as requested */
+            padding: 6rem 1rem; 
+            
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            box-sizing: border-box; /* Ensures padding is included in height calc */
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            font-size: 16px; /* Explicitly set base font size */
+            font-size: 16px; 
         }
+
         .offline-icon {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 1.5rem;
-            /* Makes the SVG white */
-            filter: invert(1) grayscale(1) brightness(2);
+            /* UPDATED: Increased size to 500px as requested */
+            width: 500px;
+            height: 500px;
+            margin-top: auto;
+            margin-bottom: auto;
+            
+            /* IMPORTANT FIX FOR COLORS:
+               This forces the browser to ignore any filters (like dark mode inverters)
+               that might be coming from global.css.
+            */
+            filter: none !important; 
+            
+            /* Resets any SVG fill overrides */
+            fill: initial !important; 
+            color: initial !important;
+            
+            /* Ensures opacity is normal */
+            opacity: 1 !important; 
         }
         
-        /* Force-override text colors to be white,
-          incase global.css loads and tries to make them black.
-        */
+        /* Force-override text colors to be white */
         .offline-page h1 {
             color: #ffffff !important; 
             font-size: 2.8rem;
-            margin-bottom: 1.5rem;
-            /* Undoes any text-clipping */
+          
             background: none !important;
             -webkit-background-clip: unset !important;
             -webkit-text-fill-color: unset !important;
@@ -55,12 +73,13 @@
             font-size: 1.8rem;
             max-width: 400px;
             line-height: 1.6;
+            margin: 0 auto; /* Centers the paragraph if it wraps */
         }
         
-        /* Basic button styling as a fallback */
-        .offline-page .btn-offline {
+        /* Button styling */
+        .btn-offline {
             margin-top: 2rem;
-            padding: 1rem 1.8rem;
+            padding: 1rem 3rem;
             font-size: 1.5rem;
             border-radius: 8px;
             font-weight: 500;
@@ -72,35 +91,40 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(135deg, #00f0ff, #ff006e);
-            color: white;
+            color: white !important; /* Force white text on button */
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.3);
+              margin-top: 1rem;
+            margin-bottom: 10rem;
+        }
+
+        .btn-offline:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.5);
         }
     </style>
 </head>
-<!-- 
-  NOTE: Using a custom 'offline-page' class instead of
-  'features-section' to avoid CSS conflicts.
--->
-<body class="features-section min-h-screen">
+<body class="features-section">
 
-    <!-- The 'offline-wrapper' is no longer needed -->
+    <!-- Wrapper div that matches the CSS selector .offline-page -->
     <div class="offline-page">
-    <img src="stock_image/offline.svg" alt="Offline" class="offline-icon" />
+        <!-- 
+            If the image is still white after this fix, the SVG file itself
+            might be drawn in white. In that case, you need to edit the SVG file
+            or use a different image.
+        -->
+        <img src="stock_image/offline.svg" alt="Offline" class="offline-icon" />
 
-    <!-- Simple h1 and p tags are more reliable -->
-    <h1>You are Offline</h1>
-    
-    <p>
-        It looks like you've lost your internet connection. 
-        Please check your connection and try again.
-    </p>
+        <h1>You are Offline</h1>
+        
+        <p>
+            It looks like you've lost your internet connection. 
+            Please check your connection and try again.
+        </p>
 
-    <!-- 
-      Using a simple class 'btn-offline' that is defined
-      in the inline <style> tag.
-    -->
-    <a href="javascript:location.reload();" class="btn-offline">
-        Try Again
-    </a>
-</div>
+        <a href="javascript:location.reload();" class="btn-offline">
+            Try Again
+        </a>
+    </div>
+
 </body>
 </html>

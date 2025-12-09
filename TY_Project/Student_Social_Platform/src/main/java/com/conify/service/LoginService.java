@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.Instant;
 import java.util.List;
 
+// --- NEW IMPORTS FOR RETRY LOGIC ---
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -50,6 +51,8 @@ public class LoginService {
         public NotVerifiedException(String message) { super(message); }
     }
 
+    // --- UPDATED METHOD ANNOTATION ---
+    // This retries the transaction up to 3 times if the DB is locked.
     @Retryable(retryFor = CannotAcquireLockException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
     @Transactional
     public Map<String, String> loginUser(LoginDTO loginDTO, String ipAddress) throws InvalidCredentialsException, NotVerifiedException {
@@ -153,11 +156,9 @@ public class LoginService {
 
     public void logoutUser(Long userId) {
         try {
-            // FIX: This line needs to pass String "ACTIVE" to the repository, which is correct,
-            // but the IDE/compiler needs the model to be clear that the status is a String.
+            // FIX: Use "ACTIVE" string to match String type in UserSession model
             List<UserSession> activeSessions = userSessionRepository.findByUserIdAndStatus(userId, "ACTIVE");
             
-            // FIX IS APPLIED HERE: The status is now set using a String literal.
             for (UserSession session : activeSessions) {
                 session.setLogoutTime(Instant.now());
                 session.setStatus("CLOSED"); 

@@ -1,9 +1,9 @@
 package com.conify.service;
 
 import com.conify.repository.UserRepository;
+import com.conify.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-// --- NEW IMPORTS FOR RETRY LOGIC ---
 import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserCleanupService {
@@ -19,24 +21,46 @@ public class UserCleanupService {
     @Autowired
     private UserRepository userRepository;
 
-    // How long does a user have to verify? (Matches your frontend timer usually)
-    //ISKO 1 SE 5 KARNA HAIN
-    private static final int OTP_EXPIRATION_MINUTES = 1;
+    private static final int OTP_EXPIRATION_MINUTES = 5;
 
-    // This runs automatically every 60 seconds (fixedRate = 60000ms)
+    // Runs every 60 seconds
     @Scheduled(fixedRate = 60000)
-    // Retries up to 3 times if SQLite is busy, waiting 1s between tries
     @Retryable(retryFor = CannotAcquireLockException.class, maxAttempts = 3, backoff = @Backoff(delay = 1000))
-    @Transactional // Required for delete operations
+    @Transactional
     public void removeUnverifiedUsers() {
-        // Calculate the time 5 minutes ago
+        // 1. Clean Unverified Users (Existing logic)
         Instant fiveMinutesAgo = Instant.now().minusSeconds(OTP_EXPIRATION_MINUTES * 60);
         Timestamp expiryThreshold = Timestamp.from(fiveMinutesAgo);
-
-        // Delete anyone who is NOT verified (0) AND created BEFORE that threshold
         userRepository.deleteByIsVerifiedAndOtpCreatedAtBefore(0, expiryThreshold);
         
-        // Optional: Add a log so you know it's working in the console
-        // System.out.println("🧹 Running cleanup: Removed unverified users older than " + fiveMinutesAgo);
+        // 2. NEW: Clean Expired Password Reset Tokens
+        // This addresses your request to clear the token from the DB automatically
+        clearExpiredResetTokens();
+    }
+
+    private void clearExpiredResetTokens() {
+        try {
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            
+            // Find users with expired tokens that haven't been cleared yet
+            // Note: This iterates all users to filter, which is safe for small-medium apps.
+            // For large scale, a custom repository method @Query("DELETE FROM User u WHERE ...") is better.
+            List<User> allUsers = userRepository.findAll();
+            
+            List<User> usersWithExpiredTokens = allUsers.stream()
+                .filter(u -> u.getResetToken() != null && 
+                             u.getResetTokenExpiry() != null && 
+                             u.getResetTokenExpiry().before(now))
+                .collect(Collectors.toList());
+
+            for(User u : usersWithExpiredTokens) {
+                 u.setResetToken(null);
+                 u.setResetTokenExpiry(null);
+                 userRepository.save(u);
+            }
+             
+        } catch (Exception e) {
+            System.err.println("Cleanup error: " + e.getMessage());
+        }
     }
 }
