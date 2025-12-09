@@ -1020,3 +1020,27 @@ body.dark-mode .mobile-nav-item.active-nav {
 body.dark-mode .slider {
     background-color: #4b5563; 
 }
+
+/* =========================================
+    10. ACCESS RESTRICTION (DOCUMENT VERIFICATION)
+    ========================================= */
+
+/* Access Restriction Styles */
+body.access-restricted .nav-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+    background-color: transparent !important;
+    color: var(--text-secondary) !important;
+}
+
+body.access-restricted .nav-disabled svg {
+    color: var(--text-secondary) !important;
+}
+
+/* Ensure Profile and Settings remain clickable/highlighted properly */
+body.access-restricted .nav-item[data-view="profile"],
+body.access-restricted .nav-item[data-view="settings"] {
+    opacity: 1;
+    pointer-events: auto;
+}

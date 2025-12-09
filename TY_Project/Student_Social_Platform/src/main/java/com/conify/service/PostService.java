@@ -21,49 +21,79 @@ import java.util.UUID;
 @Service
 public class PostService {
 
-    @Autowired
-    private PostRepository postRepository;
+    @Autowired private PostRepository postRepository;
+    @Autowired private UserProfileRepository userProfileRepository;
 
-    @Autowired
-    private UserProfileRepository userProfileRepository;
-
-    // Directory for post content images
     private static final String CONTENT_UPLOAD_DIR = "src/main/resources/static/uploads/content/";
+    
+    // --- PUBLIC Helper: Image Compression Logic ---
+    public String saveAndCompressImage(MultipartFile file) throws Exception {
+        // Ensure directory exists based on project root
+        File dir = new File(CONTENT_UPLOAD_DIR);
+        if (!dir.exists()) {
+             // Attempt to create directories if they don't exist
+             if (!dir.mkdirs()) {
+                 throw new IllegalStateException("Failed to create upload directory: " + CONTENT_UPLOAD_DIR);
+             }
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        String newFilename = UUID.randomUUID().toString() + extension;
+        
+        // Use the absolute path for file transfer
+        Path filePath = Paths.get(dir.getAbsolutePath(), newFilename);
+
+        // Compression Logic
+        BufferedImage inputImage = ImageIO.read(file.getInputStream());
+        int targetWidth = 800; 
+        
+        if (inputImage.getWidth() > targetWidth) {
+            int targetHeight = (int) (inputImage.getHeight() * ((double) targetWidth / inputImage.getWidth()));
+            BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+            Graphics2D g2d = outputImage.createGraphics();
+            g2d.drawImage(inputImage, 0, 0, targetWidth, targetHeight, null);
+            g2d.dispose();
+            
+            // Write compressed image to disk
+            ImageIO.write(outputImage, extension.substring(1), filePath.toFile());
+        } else {
+            // Write original file to disk
+            file.transferTo(filePath.toFile());
+        }
+
+        // Return relative path (Web Path) that the Resource Handler maps
+        return "uploads/content/" + newFilename;
+    }
+    // --- End Helper ---
 
     public Post createPost(Long userId, String content, MultipartFile imageFile) throws Exception {
-        // 1. Fetch User Profile for Snapshot
         UserProfile profile = userProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new Exception("User profile not found. Please relogin to sync."));
+                .orElseThrow(() -> new Exception("Profile sync error"));
 
-        // 2. Create Post Object
         Post post = new Post();
         post.setUserId(userId);
         post.setContent(content);
         post.setCreatedAt(Instant.now());
-
-        // 3. Create Author Snapshot (Denormalization)
-        Post.AuthorSnapshot snapshot = new Post.AuthorSnapshot(
-                profile.getUsername(),
-                profile.getAvatarUrl(),
+        
+        post.setAuthorSnapshot(new Post.AuthorSnapshot(
+                profile.getUsername(), 
+                profile.getAvatarUrl(), 
                 profile.getMajor()
-        );
-        post.setAuthorSnapshot(snapshot);
+        ));
 
-        // 4. Handle Image Upload (if present)
         if (imageFile != null && !imageFile.isEmpty()) {
-            String mediaUrl = saveAndCompressImage(imageFile);
-            post.setMediaUrl(mediaUrl);
+            String mediaUrl = saveAndCompressImage(imageFile); 
             post.setMediaType(Post.MediaType.IMAGE);
+            post.setMediaUrl(mediaUrl); 
         } else {
             post.setMediaType(Post.MediaType.NONE);
         }
 
-        // 5. Save to MongoDB
         return postRepository.save(post);
     }
 
     public List<Post> getFeed() {
-        // Fetch all posts, sorted by newest first
         return postRepository.findAllByOrderByCreatedAtDesc();
     }
 
@@ -81,33 +111,5 @@ public class PostService {
         post.setLikeCount(likes.size());
         
         return postRepository.save(post);
-    }
-
-    // --- Helper: Image Compression Logic ---
-    private String saveAndCompressImage(MultipartFile file) throws Exception {
-        File dir = new File(CONTENT_UPLOAD_DIR);
-        if (!dir.exists()) dir.mkdirs();
-
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        String newFilename = UUID.randomUUID().toString() + extension;
-        Path filePath = Paths.get(CONTENT_UPLOAD_DIR + newFilename);
-
-        // Compress/Resize
-        BufferedImage inputImage = ImageIO.read(file.getInputStream());
-        int targetWidth = 800; // Larger width for posts
-        if (inputImage.getWidth() > targetWidth) {
-            int targetHeight = (int) (inputImage.getHeight() * ((double) targetWidth / inputImage.getWidth()));
-            BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g2d = outputImage.createGraphics();
-            g2d.drawImage(inputImage, 0, 0, targetWidth, targetHeight, null);
-            g2d.dispose();
-            ImageIO.write(outputImage, extension.substring(1), filePath.toFile());
-        } else {
-            file.transferTo(filePath.toFile());
-        }
-
-        // Return relative path for frontend
-        return "uploads/content/" + newFilename;
     }
 }

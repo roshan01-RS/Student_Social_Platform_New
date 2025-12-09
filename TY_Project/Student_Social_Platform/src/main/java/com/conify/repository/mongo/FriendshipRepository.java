@@ -10,4 +10,7 @@ import java.util.Optional;
 public interface FriendshipRepository extends MongoRepository<Friendship, String> {
     Optional<Friendship> findByRequesterIdAndRecipientId(Long r1, Long r2);
     List<Friendship> findByRecipientIdAndStatus(Long recipientId, Friendship.FriendshipStatus status); 
+    
+    // CRITICAL FIX: Added method to find requests SENT by user with specific status
+    List<Friendship> findByRequesterIdAndStatus(Long requesterId, Friendship.FriendshipStatus status);
 }

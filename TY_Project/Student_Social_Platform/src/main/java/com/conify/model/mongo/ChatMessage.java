@@ -20,7 +20,13 @@ public class ChatMessage {
     
     private Instant timestamp = Instant.now();
 
-    public enum MessageType { TEXT, IMAGE, EMOJI, SYSTEM }
+    // NEW: Used to pass back info on which message was read, or who is typing
+    private String messageId;
+    private Long readerId;
+    private Long originalSenderId;
+
+    // ADDED TYPING and READ_ACK for WebSocket events that won't be persisted as message documents
+    public enum MessageType { TEXT, IMAGE, EMOJI, SYSTEM, TYPING, READ_ACK }
     public enum MessageStatus { SENT, DELIVERED, READ }
 
     // Getters/Setters
@@ -42,4 +48,12 @@ public class ChatMessage {
     public void setStatus(MessageStatus status) { this.status = status; }
     public Instant getTimestamp() { return timestamp; }
     public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+    
+    // NEW Accessors for WebSocket events
+    public String getMessageId() { return messageId; }
+    public void setMessageId(String messageId) { this.messageId = messageId; }
+    public Long getReaderId() { return readerId; }
+    public void setReaderId(Long readerId) { this.readerId = readerId; }
+    public Long getOriginalSenderId() { return originalSenderId; }
+    public void setOriginalSenderId(Long originalSenderId) { this.originalSenderId = originalSenderId; }
 }

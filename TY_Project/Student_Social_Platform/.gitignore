@@ -35,3 +35,21 @@ out/
 
 ### VS Code ###
 .vscode/
+
+# ==========================
+# Ignore ALL Admin Login files
+# ==========================
+
+# Admin backend code
+Student_Social_Platform/src/main/java/com/conify/controller/AdminLoginController.java
+Student_Social_Platform/src/main/java/com/conify/service/AdminLoginService.java
+
+# Application properties
+Student_Social_Platform/src/main/resources/application.properties
+
+
+# Admin JS
+Student_Social_Platform/src/main/resources/static/js/AdminLogin.js
+
+
+

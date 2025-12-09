@@ -10,8 +10,10 @@ import com.conify.repository.mongo.UserProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class FriendshipService {
@@ -21,22 +23,18 @@ public class FriendshipService {
     @Autowired private NotificationRepository notificationRepository;
 
     public List<UserProfile> searchUsers(String query) {
-        // Find users whose username starts with the query (case-insensitive search is faster than LIKE)
-        // MongoDB repository handles the pattern matching when using findByUsernameStartingWithIgnoreCase
-        return userProfileRepository.findByUsernameStartingWithIgnoreCase("@" + query);
+        String cleanQuery = query.startsWith("@") ? query : "@" + query;
+        return userProfileRepository.findByUsernameStartingWithIgnoreCase(cleanQuery);
     }
 
     public FriendshipStatus getFriendshipStatus(Long currentUserId, Long targetUserId) {
-        // Friendship should be checked bidirectionally
-        // Try Requester -> Recipient
         Optional<Friendship> f1 = friendshipRepository.findByRequesterIdAndRecipientId(currentUserId, targetUserId);
         if (f1.isPresent()) return f1.get().getStatus();
 
-        // Try Recipient -> Requester (if targetUserId sent the request)
         Optional<Friendship> f2 = friendshipRepository.findByRequesterIdAndRecipientId(targetUserId, currentUserId);
         if (f2.isPresent()) return f2.get().getStatus();
 
-        return null; // No status, implicitly NOT_FRIENDS
+        return null; 
     }
 
     public Friendship sendFriendRequest(Long requesterId, Long recipientId) throws Exception {
@@ -45,18 +43,20 @@ public class FriendshipService {
         }
 
         FriendshipStatus status = getFriendshipStatus(requesterId, recipientId);
-        if (status != null) {
-            throw new IllegalStateException("Friendship already exists with status: " + status);
+        
+        if (status == FriendshipStatus.PENDING) {
+             throw new IllegalStateException("Friend request already pending.");
+        }
+        if (status == FriendshipStatus.ACCEPTED) {
+             throw new IllegalStateException("You are already friends.");
         }
 
-        // 1. Create PENDING Friendship
         Friendship request = new Friendship();
         request.setRequesterId(requesterId);
         request.setRecipientId(recipientId);
         request.setStatus(FriendshipStatus.PENDING);
         Friendship savedRequest = friendshipRepository.save(request);
 
-        // 2. Create Notification
         UserProfile senderProfile = userProfileRepository.findByUserId(requesterId)
                 .orElseThrow(() -> new RuntimeException("Sender profile not synced."));
 
@@ -74,16 +74,13 @@ public class FriendshipService {
     }
 
     public void respondToRequest(Long currentUserId, Long requesterId, String action) throws Exception {
-        // Check bidirectionally to find the PENDING request
         Optional<Friendship> friendshipOpt = friendshipRepository.findByRequesterIdAndRecipientId(requesterId, currentUserId);
         
-        if (friendshipOpt.isEmpty()) {
-            throw new IllegalArgumentException("Pending request not found.");
-        }
+        if (friendshipOpt.isEmpty()) throw new IllegalArgumentException("Pending request not found.");
         
         Friendship friendship = friendshipOpt.get();
         if (friendship.getStatus() != FriendshipStatus.PENDING) {
-            throw new IllegalStateException("Request status is already " + friendship.getStatus());
+            throw new IllegalStateException("Request is not pending.");
         }
 
         UserProfile recipientProfile = userProfileRepository.findByUserId(currentUserId).orElseThrow();
@@ -99,12 +96,11 @@ public class FriendshipService {
             type = Notification.NotificationType.FRIEND_REJECT;
             message = "rejected your friend request";
         } else {
-            throw new IllegalArgumentException("Invalid action: must be 'accept' or 'reject'.");
+            throw new IllegalArgumentException("Invalid action.");
         }
         
         friendshipRepository.save(friendship);
 
-        // Notify the Requester about the response
         Notification responseNotif = new Notification();
         responseNotif.setRecipientId(requesterId);
         responseNotif.setSenderId(currentUserId);
@@ -114,5 +110,42 @@ public class FriendshipService {
         responseNotif.setType(type);
         responseNotif.setMessage(message);
         notificationRepository.save(responseNotif);
+    }
+    
+    // --- UPDATED: Retrieve Accepted Friends AND Pending Requests ---
+    public List<UserProfile> getFriendsAndRequests(Long userId) {
+        // 1. Friends (Accepted) - Sent by user
+        List<Friendship> sentAccepted = friendshipRepository.findByRequesterIdAndStatus(userId, FriendshipStatus.ACCEPTED);
+        // 2. Friends (Accepted) - Received by user
+        List<Friendship> receivedAccepted = friendshipRepository.findByRecipientIdAndStatus(userId, FriendshipStatus.ACCEPTED);
+        // 3. Pending Requests - Sent by user (User wants to see pending outgoing requests)
+        List<Friendship> sentPending = friendshipRepository.findByRequesterIdAndStatus(userId, FriendshipStatus.PENDING);
+        // 4. Pending Requests - Received by user (Optional: Show incoming requests in list too?)
+        List<Friendship> receivedPending = friendshipRepository.findByRecipientIdAndStatus(userId, FriendshipStatus.PENDING);
+        
+        List<Long> targetIds = new ArrayList<>();
+        
+        sentAccepted.forEach(f -> targetIds.add(f.getRecipientId()));
+        receivedAccepted.forEach(f -> targetIds.add(f.getRequesterId()));
+        sentPending.forEach(f -> targetIds.add(f.getRecipientId()));
+        receivedPending.forEach(f -> targetIds.add(f.getRequesterId()));
+        
+        // Remove duplicates if any (though logic should prevent duplicate active friendships)
+        List<Long> uniqueIds = targetIds.stream().distinct().collect(Collectors.toList());
+        
+        return userProfileRepository.findAllById(uniqueIds.stream().map(Object::toString).collect(Collectors.toList()));
+    }
+
+    // --- Remove Friendship / Cancel Request ---
+    public void removeFriendship(Long currentUserId, Long targetUserId) {
+        Optional<Friendship> f1 = friendshipRepository.findByRequesterIdAndRecipientId(currentUserId, targetUserId);
+        if (f1.isPresent()) {
+            friendshipRepository.delete(f1.get());
+            return;
+        }
+        Optional<Friendship> f2 = friendshipRepository.findByRequesterIdAndRecipientId(targetUserId, currentUserId);
+        if (f2.isPresent()) {
+            friendshipRepository.delete(f2.get());
+        }
     }
 }

@@ -9,20 +9,20 @@ public class Notification {
     @Id
     private String id;
     
-    private Long recipientId; // Who gets it
-    private Long senderId;    // Who triggered it
+    private Long recipientId; 
+    private Long senderId;   
     
     private SenderSnapshot senderSnapshot;
     
     private NotificationType type;
     private String message; 
     
-    private String relatedEntityId; // ID of post/comment/group
+    private String relatedEntityId; 
     private boolean isRead = false;
     private Instant createdAt = Instant.now();
 
     public enum NotificationType {
-        LIKE, COMMENT, FRIEND_REQ, FRIEND_ACCEPT, FRIEND_REJECT, GROUP_ADD, FOLLOW
+        LIKE, COMMENT, FRIEND_REQ, FRIEND_ACCEPT, FRIEND_REJECT, GROUP_ADD, FOLLOW, SYSTEM // Added SYSTEM
     }
 
     public static class SenderSnapshot {

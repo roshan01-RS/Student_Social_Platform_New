@@ -1,0 +1,135 @@
+/* =========================================
+   ADMIN PANEL STYLES - PROFESSIONAL UI
+   ========================================= */
+
+:root {
+    --primary-color: #4f46e5; /* Indigo */
+    --primary-hover: #4338ca;
+    --success-color: #10b981; /* Emerald */
+    --warning-color: #f59e0b; /* Amber */
+    --danger-color: #ef4444;  /* Red */
+    
+    --bg-color: #f3f4f6;
+    --card-bg: #ffffff;
+    --text-main: #111827;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --radius-lg: 12px;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 0;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+.max-w-7xl {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* --- Header --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.dashboard-title h1 { font-size: 1.875rem; font-weight: 700; margin: 0 0 0.25rem 0; color: var(--text-main); }
+.dashboard-title p { margin: 0; color: var(--text-secondary); font-size: 0.95rem; }
+.btn-logout { background-color: var(--card-bg); color: var(--danger-color); border: 1px solid #fee2e2; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; }
+.btn-logout:hover { background-color: #fef2f2; border-color: #fecaca; }
+
+
+/* --- Navigation Tabs --- */
+.nav-tabs { display: flex; gap: 1.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 2.5rem; }
+.nav-tab { background: none; border: none; padding: 0.75rem 0; font-size: 1rem; font-weight: 500; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; outline: none; }
+.nav-tab.active { color: var(--primary-color); font-weight: 600; border-bottom-color: var(--primary-color); }
+.nav-tab:hover { color: var(--primary-color); }
+
+/* --- Stats Cards --- */
+#stats-container { display: grid; grid-template-columns: repeat(3, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
+.stat-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 1.2rem; }
+.stat-icon { width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.5rem; flex-shrink: 0; }
+.stat-value { font-size: 2rem; font-weight: 700; line-height: 1; color: var(--text-main); margin-bottom: 0.25rem; }
+.stat-body { flex-grow: 1; }
+.stat-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin: 0 0 0.25rem 0; text-transform: uppercase; letter-spacing: 0.03em; }
+
+/* Status Specific Colors */
+.stat-pending .stat-icon { background: #eff6ff; color: #3b82f6; }
+.stat-verified .stat-icon { background: #ecfdf5; color: var(--success-color); }
+.stat-rejected .stat-icon { background: #fef2f2; color: var(--danger-color); }
+
+
+/* --- List / Table Section --- */
+.list-container { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; }
+.list-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background-color: #f9fafb; }
+.list-title { font-size: 1.1rem; font-weight: 700; margin: 0; color: var(--text-main); }
+
+/* FIX: Search Input Styling */
+.search-input {
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    width: 250px;
+    transition: all 0.2s;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+/* Verification Items (Rows) */
+.verification-item { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); background: white; transition: background-color 0.15s; cursor: pointer; }
+.verification-item:hover { background-color: #f9fafb; }
+.user-info { display: flex; align-items: center; gap: 1rem; }
+.user-avatar-placeholder { width: 3rem; height: 3rem; border-radius: 50%; background: #e0e7ff; color: var(--primary-color); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
+.user-avatar-img { width: 3rem; height: 3rem; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-color); }
+.user-details h4 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
+.user-details p { margin: 2px 0 0 0; font-size: 0.85rem; color: var(--text-secondary); }
+
+/* Badges */
+.status-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.85rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; border: 1px solid transparent; }
+.status-badge.pending { background-color: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.status-badge.verified { background-color: #ecfdf5; color: #047857; border-color: #6ee7b7; }
+.status-badge.rejected { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+
+/* --- Table Specifics --- */
+table { width: 100%; border-collapse: collapse; }
+thead th { text-align:left; padding:1rem 1.5rem; background-color: #f9fafb; color:var(--text-secondary); font-size:0.75rem; font-weight:700; text-transform:uppercase; border-bottom:1px solid var(--border-color); }
+tbody td { padding:1rem 1.5rem; color:var(--text-main); border-bottom:1px solid var(--border-color); vertical-align:middle; }
+tbody tr:hover td { background-color: #f9fafb; }
+
+.view-details-btn { color:var(--primary-color); font-weight:600; font-size:0.85rem; background:#eef2ff; border:none; cursor:pointer; padding:0.4rem 0.8rem; border-radius:6px; transition:all .2s; }
+.view-details-btn:hover { background-color:#e0e7ff; color:var(--primary-hover); }
+
+/* --- Modal Styles --- */
+.modal-backdrop { position: fixed; inset: 0; background-color: rgba(2, 6, 23, 0.65); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { background: var(--card-bg); width: 100%; max-width: 900px; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+.modal-header { background: linear-gradient(90deg, var(--primary-color), #7c3aed); padding: 1.25rem 1.5rem; color: white; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+.modal-close { background: rgba(255,255,255,0.15); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+.modal-body { padding: 1.5rem; overflow-y: auto; }
+
+/* Info Grid inside Modal */
+.info-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; margin-bottom:1.5rem; background:#f9fafb; padding:1rem; border-radius:10px; border:1px solid var(--border-color); }
+.info-item label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem; }
+.info-item span { font-size: 0.95rem; font-weight: 600; color: var(--text-main); }
+.doc-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:1.5rem; }
+.doc-card-header { background: #fbfdff; padding: 0.75rem 1rem; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.5rem; }
+.doc-image-wrapper { height: 280px; background: #e5e5e5; display: flex; align-items: center; justify-content: center; }
+
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: #f9fafb; display: flex; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+.btn-modal { padding: 0.65rem 1.25rem; border-radius: 8px; font-weight: 700; border: none; cursor: pointer; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; transition: opacity 0.2s; }
+.btn-verify { background-color: var(--success-color); color: white; }
+.btn-reject { background-color: white; color: var(--danger-color); border: 1px solid #fecaca; }
+.btn-delete { background-color: #fef2f2; color: var(--danger-color); border: 1px solid #fecaca; }

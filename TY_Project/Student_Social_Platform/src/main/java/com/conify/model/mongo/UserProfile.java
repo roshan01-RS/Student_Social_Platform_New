@@ -12,24 +12,27 @@ public class UserProfile {
     private String id;
 
     @Indexed(unique = true)
-    private Long userId; // Link to SQLite User ID
+    private Long userId; 
 
-    // --- Read-Only Identity Fields (Synced from SQLite) ---
-    private String username; // Stored with '@' prefix
+    private String username; 
     private String email;
     private String schoolName;
     private LocalDate birthday;
     private Instant joinedAt;
     
-    // NEW FIELD: Account validation expiration date
     private Instant accountExpireDate;
 
-    // --- Editable Profile Fields ---
     private String avatarUrl;
     private String bio;
     private String major;
     
     private Instant lastActive;
+
+    // --- NEW VERIFICATION FIELDS ---
+    private String verificationStatus = "NONE"; // NONE, PENDING, VERIFIED, REJECTED
+    private String idCardUrl;
+    private String receiptUrl;
+    private Instant verificationSubmittedAt;
 
     public UserProfile() {}
     public UserProfile(Long userId) { this.userId = userId; }
@@ -49,11 +52,8 @@ public class UserProfile {
     public void setBirthday(LocalDate birthday) { this.birthday = birthday; }
     public Instant getJoinedAt() { return joinedAt; }
     public void setJoinedAt(Instant joinedAt) { this.joinedAt = joinedAt; }
-    
-    // NEW ACCESSORS
     public Instant getAccountExpireDate() { return accountExpireDate; }
     public void setAccountExpireDate(Instant accountExpireDate) { this.accountExpireDate = accountExpireDate; }
-    
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
     public String getBio() { return bio; }
@@ -62,4 +62,14 @@ public class UserProfile {
     public void setMajor(String major) { this.major = major; }
     public Instant getLastActive() { return lastActive; }
     public void setLastActive(Instant lastActive) { this.lastActive = lastActive; }
+
+    // NEW Accessors
+    public String getVerificationStatus() { return verificationStatus; }
+    public void setVerificationStatus(String verificationStatus) { this.verificationStatus = verificationStatus; }
+    public String getIdCardUrl() { return idCardUrl; }
+    public void setIdCardUrl(String idCardUrl) { this.idCardUrl = idCardUrl; }
+    public String getReceiptUrl() { return receiptUrl; }
+    public void setReceiptUrl(String receiptUrl) { this.receiptUrl = receiptUrl; }
+    public Instant getVerificationSubmittedAt() { return verificationSubmittedAt; }
+    public void setVerificationSubmittedAt(Instant verificationSubmittedAt) { this.verificationSubmittedAt = verificationSubmittedAt; }
 }

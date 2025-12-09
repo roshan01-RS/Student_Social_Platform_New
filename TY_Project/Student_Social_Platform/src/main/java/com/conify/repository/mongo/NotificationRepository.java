@@ -8,4 +8,7 @@ import java.util.List;
 @Repository
 public interface NotificationRepository extends MongoRepository<Notification, String> {
     List<Notification> findByRecipientIdOrderByCreatedAtDesc(Long recipientId);
+    
+    // NEW: Used to find unread notifications for marking them as read
+    List<Notification> findByRecipientIdAndIsReadFalse(Long recipientId);
 }

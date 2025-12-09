@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conify Admin | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin_panel.css">
+    
+    <!-- FIX: WebSocket Libraries (CRITICAL FOR REAL-TIME) -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <script src="js/AdminAuthCheck.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50">
+
+    <div class="max-w-7xl mx-auto p-8">
+        <!-- Header -->
+        <header class="dashboard-header mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+                <p class="text-gray-600">Manage users and verification requests</p>
+            </div>
+            <!-- Logout button now uses the CSS class -->
+            <button id="btn-admin-logout" class="btn-logout">Log Out</button>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" id="tab-verifications">Verifications</button>
+            <button class="nav-tab" id="tab-users">All Users</button>
+        </div>
+
+        <!-- VIEW: PENDING VERIFICATIONS -->
+        <div id="view-verifications">
+            <!-- Stats Cards -->
+            <div class="stats-grid" id="stats-container">
+                <div class="stat-card stat-pending"><div class="stat-icon"><div class="spinner"></div></div><div class="stat-body">Loading...</div></div>
+            </div>
+
+            <!-- Pending List -->
+            <div class="list-container">
+                <div class="list-header">
+                    <h2 class="list-title">Pending Document Verifications</h2>
+                </div>
+                <div id="student-list-container">
+                    <div style="padding: 2rem; text-align: center; color: #6b7280;">Fetching data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: ALL USERS LIST -->
+        <div id="view-users" style="display: none;">
+            <div class="list-container">
+                <div class="list-header">
+                    <h2 class="list-title">Registered Users</h2>
+                    <div class="relative">
+                        <input type="text" id="user-search" placeholder="Search users..." class="search-input">
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                                <th class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
+                                <th class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Joined</th>
+                                <th class="p-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-users-container" class="divide-y divide-gray-200 bg-white">
+                            <!-- Users injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL: Verification Details -->
+    <div id="admin-modal-backdrop" class="modal-backdrop">
+        <div id="admin-modal-content" class="modal-content">
+            <!-- Verification Content Injected Here -->
+        </div>
+    </div>
+
+    <!-- MODAL: User Details -->
+    <div id="user-details-modal" class="modal-backdrop" style="display: none;">
+        <div id="user-details-content" class="modal-content" style="max-width: 600px;">
+            <!-- User Profile Details Injected Here -->
+        </div>
+    </div>
+
+    <script src="js/AdminPanel.js"></script>
+    <script>
+        // Initialize Lucide icons after all HTML is loaded
+        lucide.createIcons();
+    </script>
+</body>
+</html>

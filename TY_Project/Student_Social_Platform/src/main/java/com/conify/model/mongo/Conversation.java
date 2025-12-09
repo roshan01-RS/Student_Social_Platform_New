@@ -17,6 +17,10 @@ public class Conversation {
     
     // Map of UserId (String) -> Unread Count (Integer)
     private Map<String, Integer> unreadCounts;
+    
+    // NEW: Map of UserId (String) -> Last Read Message ID (String)
+    // Tracks the last message ID read by the *participant* corresponding to the key.
+    private Map<String, String> lastReadMessageIds; 
 
     public static class LastMessage {
         public Long senderId;
@@ -39,4 +43,8 @@ public class Conversation {
     public void setLastMessage(LastMessage lastMessage) { this.lastMessage = lastMessage; }
     public Map<String, Integer> getUnreadCounts() { return unreadCounts; }
     public void setUnreadCounts(Map<String, Integer> unreadCounts) { this.unreadCounts = unreadCounts; }
+
+    // NEW Getter/Setter for Last Read Message IDs
+    public Map<String, String> getLastReadMessageIds() { return lastReadMessageIds; }
+    public void setLastReadMessageIds(Map<String, String> lastReadMessageIds) { this.lastReadMessageIds = lastReadMessageIds; }
 }

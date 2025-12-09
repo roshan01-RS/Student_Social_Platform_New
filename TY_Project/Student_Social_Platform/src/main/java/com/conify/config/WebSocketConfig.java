@@ -12,17 +12,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // /topic = Public broadcasts (Groups, Feed)
-        // /queue = Private messages (1-on-1)
+        // /topic = Public channels (for broadcasts, like logout alerts or group messages)
+        // /queue = Private channels (for 1-on-1 chats and user-specific notifications)
         config.enableSimpleBroker("/topic", "/queue");
+        // /app is the prefix for endpoints handled by @MessageMapping (like /app/chat)
         config.setApplicationDestinationPrefixes("/app");
+        // /user ensures private messages route to /user/{userId}/queue/*
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // /ws is the WebSocket handshake endpoint for SockJS clients
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://127.0.0.1:5501", "http://localhost:5501", "http://127.0.0.1:8000", "*")
+                // Allow all origins (*) for flexible testing/deployment.
+                .setAllowedOriginPatterns("*") 
                 .withSockJS();
     }
 }

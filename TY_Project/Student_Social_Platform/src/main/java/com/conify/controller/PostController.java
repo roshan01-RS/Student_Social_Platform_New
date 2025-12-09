@@ -1,10 +1,10 @@
 package com.conify.controller;
 
+import com.conify.model.User;
 import com.conify.model.mongo.Post;
 import com.conify.service.JwtUtil;
 import com.conify.service.PostService;
 import com.conify.repository.UserRepository;
-import com.conify.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -26,9 +25,15 @@ public class PostController {
     private JwtUtil jwtUtil;
     
     @Autowired
-    private UserRepository userRepository; // Need to look up ID from username in token
+    private UserRepository userRepository; 
 
-    // --- 1. Create Post ---
+    private Long getCurrentUserId(String token) throws RuntimeException {
+        if (!jwtUtil.validateToken(token)) throw new RuntimeException("Invalid Token");
+        String username = jwtUtil.getUsernameFromToken(token);
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        return user.getId();
+    }
+
     @PostMapping("/create")
     public ResponseEntity<?> createPost(
             @CookieValue(name = "authToken", required = false) String token,
@@ -40,15 +45,7 @@ public class PostController {
         }
 
         try {
-            // Get User ID
-            String username = jwtUtil.getUsernameFromToken(token);
-            // Since JWT has username, we fetch the ID from SQLite quickly (Auth Layer)
-            // Ideally JWT should have ID, but this works with your current setup.
-            Optional<User> userOpt = userRepository.findByUsername(username);
-            if(userOpt.isEmpty()) return ResponseEntity.status(401).build();
-            
-            Long userId = userOpt.get().getId();
-
+            Long userId = getCurrentUserId(token);
             Post createdPost = postService.createPost(userId, content, file);
             return ResponseEntity.ok(createdPost);
 
@@ -58,10 +55,28 @@ public class PostController {
         }
     }
 
-    // --- 2. Get Feed ---
+    @PostMapping("/create-media")
+    public ResponseEntity<Map<String, String>> uploadChatMedia(
+            @CookieValue(name = "authToken", required = false) String token,
+            @RequestParam("file") MultipartFile file) {
+
+        if (token == null || !jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized."));
+        }
+
+        try {
+            // Note: postService.saveAndCompressImage must be public in PostService.java
+            String mediaUrl = postService.saveAndCompressImage(file);
+            return ResponseEntity.ok(Map.of("url", mediaUrl));
+
+        } catch (Exception e) {
+            System.err.println("Media upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Media upload failed."));
+        }
+    }
+
     @GetMapping("/feed")
     public ResponseEntity<?> getFeed(@CookieValue(name = "authToken", required = false) String token) {
-        // Feed is public to logged in users
         if (token == null || !jwtUtil.validateToken(token)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid token"));
         }
@@ -70,7 +85,6 @@ public class PostController {
         return ResponseEntity.ok(posts);
     }
 
-    // --- 3. Toggle Like ---
     @PostMapping("/{postId}/like")
     public ResponseEntity<?> toggleLike(
             @CookieValue(name = "authToken", required = false) String token,
@@ -81,10 +95,8 @@ public class PostController {
         }
 
         try {
-            String username = jwtUtil.getUsernameFromToken(token);
-            User user = userRepository.findByUsername(username).orElseThrow();
-            
-            Post updatedPost = postService.toggleLike(postId, user.getId());
+            Long userId = getCurrentUserId(token);
+            Post updatedPost = postService.toggleLike(postId, userId);
             return ResponseEntity.ok(updatedPost);
 
         } catch (Exception e) {

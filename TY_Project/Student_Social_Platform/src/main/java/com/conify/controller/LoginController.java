@@ -11,6 +11,9 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+// --- NEW IMPORT ---
+import org.springframework.dao.CannotAcquireLockException;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,6 +56,13 @@ public class LoginController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("status", "error", "message", e.getMessage()));
         } catch (LoginService.NotVerifiedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("status", "unverified", "message", e.getMessage()));
+        
+        // --- NEW: Friendly message for DB Locks ---
+        } catch (CannotAcquireLockException e) {
+            // The user sees this simple message instead of "SQLITE_BUSY"
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(Map.of("status", "error", "message", "System is busy. Please try again in a few seconds."));
+            
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("status", "error", "message", "Login failed."));
         }
