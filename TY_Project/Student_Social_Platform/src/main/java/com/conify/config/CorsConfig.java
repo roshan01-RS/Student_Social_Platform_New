@@ -9,19 +9,24 @@ public class CorsConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // Apply CORS settings to ALL endpoints ("/**")
+        System.out.println("🟢 Applying Global CORS Configuration...");
+
         registry.addMapping("/**")
-                // Allow your specific frontend origins (VS Code Live Server)
-                .allowedOrigins("http://127.0.0.1:5501", "http://localhost:5501")
+                // CHANGED: Use allowedOriginPatterns("*") instead of specific URLs.
+                // This allows your dynamic Cloudflare Tunnel URLs to work automatically.
+                .allowedOriginPatterns("*")
+                
                 // Allow standard HTTP methods
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                // Allow all headers (Content-Type, Authorization, etc.)
+                
+                // Allow all headers
                 .allowedHeaders("*")
-                // Critical for session/cookies if you use them later
+                
+                // Allow cookies/auth tokens
                 .allowCredentials(true)
-                // How long the browser should cache the preflight OPTIONS response (in seconds)
+                
                 .maxAge(3600);
-
-        System.out.println("🟢 Spring Boot CORS Configuration Loaded");
+        
+        System.out.println("🟢 CORS Configured: Accepting all origins (Cloudflare Compatible)");
     }
 }

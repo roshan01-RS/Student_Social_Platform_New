@@ -244,7 +244,7 @@ window.App = window.App || {};
                 
                  <div class="profile-tabs-row">
                     <button id="profile-tab-overview" class="profile-tab-button profile-tab-active">Overview<span class="profile-tab-underline"></span></button>
-                    <button id="profile-tab-friends" class="profile-tab-button">Friends (3)<span class="profile-tab-underline"></span></button>
+                    <button id="profile-tab-friends" class="profile-tab-button">Friends<span class="profile-tab-underline"></span></button>
                 </div>
                 
                 <div id="profile-tab-overview-content" class="profile-tab-section">

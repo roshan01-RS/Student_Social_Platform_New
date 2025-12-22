@@ -1,7 +1,5 @@
 /* =========================================
    GROUPS PANEL STYLES (UPDATED)
-   - Full file for: css/group_panel.css
-   - Includes fixes to ensure the side-nav badge is visible immediately
    ========================================= */
 
 /* Layout Container */
@@ -68,33 +66,28 @@
 .btn-create-group svg { width: 1.4rem; height: 1.4rem; }
 
 /* --- SHARED SCROLLBAR STYLES (Sidebar & Chat) --- */
-/* This ensures BOTH the list and the chat window have the transparent hover effect */
 .groups-list-scroll-area, #group-messages-area {
     flex-grow: 1;
     overflow-y: auto;
     padding: 0.5rem;
-    /* Firefox: Hidden by default, transparent track */
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     transition: scrollbar-color 0.3s ease;
-    /* Ensure container background is transparent so track doesn't show white */
     background-color: transparent;
 }
 
-/* Show scrollbar on hover (Firefox) */
 .groups-list-scroll-area:hover, #group-messages-area:hover { scrollbar-color: #d1d5db transparent; }
 
-/* Webkit (Chrome/Edge/Safari) Scrollbar Logic */
 .groups-list-scroll-area::-webkit-scrollbar, #group-messages-area::-webkit-scrollbar { width: 6px; }
-.groups-list-scroll-area::-webkit-scrollbar-track, #group-messages-area::-webkit-scrollbar-track { background: transparent; /* KEY FIX: Always transparent track */ }
+.groups-list-scroll-area::-webkit-scrollbar-track, #group-messages-area::-webkit-scrollbar-track { background: transparent; }
 .groups-list-scroll-area::-webkit-scrollbar-thumb, #group-messages-area::-webkit-scrollbar-thumb {
-    background-color: transparent; /* Hidden by default */
+    background-color: transparent;
     border-radius: 10px;
     border: 2px solid transparent;
     background-clip: content-box;
 }
 .groups-list-scroll-area:hover::-webkit-scrollbar-thumb, #group-messages-area:hover::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.2); /* Visible only on hover */
+    background-color: rgba(0, 0, 0, 0.2); 
 }
 
 /* Group List Item */
@@ -116,21 +109,33 @@
 }
 
 .group-item-inner { display: flex; align-items: flex-start; gap: 1rem; }
+
+/* FIXED: Ensure avatar color is white/light, NOT grey */
 .group-icon-wrapper {
     width: 4rem;
     height: 4rem;
     border-radius: 0.8rem;
-    background: linear-gradient(135deg, #4169E1, #5B81FF);
+    background: #ffffff; /* White background */
+    border: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: white;
+    color: #4169E1;
     font-size: 1.6rem;
 }
 .group-item-details { flex-grow: 1; min-width: 0; }
 .group-row1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.1rem; }
-.group-name { font-size: 1.3rem; color: var(--dark-color); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* FIXED: Ensure group name is visible */
+.group-name { 
+    font-size: 1.3rem; 
+    color: var(--dark-color, #1f2937); /* Explicit dark color */
+    font-weight: 700; /* Bolder */
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
 .group-item-button.active .group-name { color: #4169E1; }
 .group-time { font-size: 1rem; color: var(--text-secondary); }
 .group-last-message {
@@ -163,26 +168,38 @@
     background-color: var(--light-bg);
     min-height: 0;
 }
+
+/* Header & Input Background Consistency (Light Mode) */
 .group-chat-header {
     padding: 1.2rem 1.5rem;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(255, 255, 255, 0.95); /* Consistent Light Mode BG */
     backdrop-filter: blur(12px);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
 }
+
+.chat-input-area {
+    padding: 1rem; /* Match spacing */
+    background-color: rgba(255, 255, 255, 0.95); /* Consistent Light Mode BG */
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(12px);
+    flex-shrink: 0;
+}
+
 .group-header-info { display: flex; align-items: center; gap: 1rem; }
 .group-header-icon {
     width: 3.6rem;
     height: 3.6rem;
     border-radius: 0.8rem;
-    background: linear-gradient(135deg, #4169E1, #5B81FF);
+    background: #ffffff; /* White bg */
+    border: 1px solid #e5e7eb;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: #4169E1;
     font-size: 1.6rem;
 }
 .group-header-text h2 { font-size: 1.5rem; color: var(--dark-color); font-weight: 700; margin: 0; }
@@ -221,7 +238,8 @@
     padding-bottom: 1.4rem;
 }
 .message-bubble img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 4px; margin-bottom: 5px; }
-.message-bubble-content p { margin: 0; padding-bottom: 2px; word-wrap: break-word; margin-right: 40px; }
+/* Ensure text wraps correctly */
+.message-bubble-content p { margin: 0; padding-bottom: 2px; word-wrap: break-word; white-space: pre-wrap; margin-right: 40px; }
 .message-time {
     font-size: 0.95rem;
     color: #6b7280;
@@ -245,6 +263,49 @@
     max-width: 90%;
 }
 
+/* Chat Input Textarea Styling */
+.chat-input-field-wrapper textarea {
+    resize: none; 
+    overflow-y: auto; /* Enable scrollbar for long text */
+    min-height: 40px; 
+    max-height: 120px; 
+    line-height: 1.4; 
+    padding: 10px 12px; 
+    border-radius: 20px; 
+    width: 100%; 
+    box-sizing: border-box; 
+    font-family: inherit; 
+    font-size: 1rem; 
+    border: 1px solid #e5e7eb;
+    background: #ffffff; /* Light mode bg */
+    color: #1f2937; /* Light mode text */
+    
+    /* Transparent Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+.chat-input-field-wrapper textarea:hover, 
+.chat-input-field-wrapper textarea:focus {
+    scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+.chat-input-field-wrapper textarea::-webkit-scrollbar { width: 4px; }
+.chat-input-field-wrapper textarea::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 4px; }
+.chat-input-field-wrapper textarea:hover::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); }
+
+/* Ensure dark mode colors for textarea */
+body.dark-mode .chat-input-field-wrapper textarea {
+    background-color: #2d2d30;
+    color: #f8fafc;
+    border-color: #3f3f46;
+}
+body.dark-mode .chat-input-field-wrapper textarea:hover, 
+body.dark-mode .chat-input-field-wrapper textarea:focus {
+    scrollbar-color: rgba(255,255,255,0.3) transparent;
+}
+body.dark-mode .chat-input-field-wrapper textarea:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.3);
+}
+
 /* Responsive */
 @media (min-width: 768px) {
     .groups-layout {
@@ -265,17 +326,11 @@ body.dark-mode .groups-layout { background-color: #1f1f22; border: 1px solid #2d
 body.dark-mode .groups-list-sidebar { background-color: transparent; border-right-color: #2d2d30; }
 body.dark-mode .groups-list-header { border-bottom-color: #2d2d30; }
 
-/* DARK MODE SCROLLBAR FIX */
-body.dark-mode .groups-list-scroll-area, body.dark-mode #group-messages-area { background-color: transparent; }
-body.dark-mode .groups-list-scroll-area:hover, body.dark-mode #group-messages-area:hover { scrollbar-color: rgba(255,255,255,0.3) transparent; }
-body.dark-mode .groups-list-scroll-area:hover::-webkit-scrollbar-thumb, body.dark-mode #group-messages-area:hover::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.3); }
-body.dark-mode .groups-list-scroll-area::-webkit-scrollbar-track, body.dark-mode #group-messages-area::-webkit-scrollbar-track { background: transparent; }
 body.dark-mode .group-name { color: white; }
 body.dark-mode .group-last-message { color: #9ca3af; }
 body.dark-mode .group-item-button:hover { background-color: #2d2d30; }
 body.dark-mode .group-item-button.active .group-name { color: #4169E1; }
 
-/* DARK MODE ACTIVE STATE */
 body.dark-mode .group-item-button.active {
     background-color: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.2);
@@ -284,7 +339,14 @@ body.dark-mode .group-item-button.active {
     box-shadow: 0 4px 15px rgba(65,105,225,0.2);
 }
 body.dark-mode .chat-window { background-color: transparent; }
-body.dark-mode .group-chat-header { background-color: rgba(31,41,55,0.8); border-color: #2d2d30; }
+
+/* Dark Mode Header & Input Consistency */
+body.dark-mode .group-chat-header,
+body.dark-mode .chat-input-area { 
+    background-color: rgba(31, 41, 55, 0.95); /* Consistent Dark BG */
+    border-color: #2d2d30; 
+}
+
 body.dark-mode .group-header-text h2 { color: white; }
 body.dark-mode .group-header-text p { color: #9ca3af; }
 body.dark-mode .message-bubble.me { background: linear-gradient(135deg, #2A3B8F, #4169E1); color: white; }
@@ -292,12 +354,10 @@ body.dark-mode .message-bubble.other { background: #2d2d30; color: #e5e7eb; bord
 body.dark-mode .message-time { color: #8696a0; }
 body.dark-mode .system-message { background-color: #374151; color: #d1d5db; }
 
-/* --- ADD MEMBERS MODAL VISIBILITY FIX --- */
+/* Add Members Modal Visibility Fix */
 body.dark-mode .add-members-modal { background-color: #1f2937; border: 1px solid #374151; }
 body.dark-mode .amm-header { border-bottom-color: #374151; color: white; }
 body.dark-mode .amm-header h3 { color: white; }
-
-/* CRITICAL: Overriding JS inline styles for modal friend list items */
 body.dark-mode .friend-select-item h4 { color: #e5e7eb !important; }
 body.dark-mode .friend-select-item p { color: #9ca3af !important; }
 body.dark-mode .friend-select-item:hover { background-color: #374151; }

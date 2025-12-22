@@ -1,5 +1,6 @@
 package com.conify.service;
 
+import com.conify.dto.FriendshipDTO;
 import com.conify.model.mongo.Friendship;
 import com.conify.model.mongo.Friendship.FriendshipStatus;
 import com.conify.model.mongo.Notification;
@@ -7,13 +8,12 @@ import com.conify.model.mongo.UserProfile;
 import com.conify.repository.mongo.FriendshipRepository;
 import com.conify.repository.mongo.NotificationRepository;
 import com.conify.repository.mongo.UserProfileRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class FriendshipService {
@@ -22,130 +22,189 @@ public class FriendshipService {
     @Autowired private UserProfileRepository userProfileRepository;
     @Autowired private NotificationRepository notificationRepository;
 
-    public List<UserProfile> searchUsers(String query) {
-        String cleanQuery = query.startsWith("@") ? query : "@" + query;
-        return userProfileRepository.findByUsernameStartingWithIgnoreCase(cleanQuery);
+   // ---------------- SEARCH WITH FRIENDSHIP STATUS ----------------
+public List<FriendshipDTO> searchUsersWithStatus(String query, Long currentUserId) {
+
+    String clean = query.startsWith("@") ? query : "@" + query;
+
+    List<UserProfile> users =
+            userProfileRepository.findByUsernameStartingWithIgnoreCase(clean);
+
+    List<FriendshipDTO> result = new ArrayList<>();
+
+    for (UserProfile profile : users) {
+
+        if (profile.getUserId().equals(currentUserId)) {
+            continue; // skip self
+        }
+
+        FriendshipDTO dto = new FriendshipDTO();
+        dto.setUserId(profile.getUserId());
+        dto.setUsername(profile.getUsername());
+        dto.setAvatarUrl(profile.getAvatarUrl());
+        dto.setMajor(profile.getMajor());
+        dto.setSchoolName(profile.getSchoolName());
+
+        // default state
+        dto.setStatus("NONE");
+        dto.setDirection("NONE");
+
+        // check outgoing
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(currentUserId, profile.getUserId())
+                .ifPresent(f -> {
+                    dto.setStatus(f.getStatus().name());
+                    if (f.getStatus() == FriendshipStatus.PENDING) {
+                        dto.setDirection("OUTGOING");
+                    } else if (f.getStatus() == FriendshipStatus.ACCEPTED) {
+                        dto.setDirection("FRIEND");
+                    }
+                });
+
+        // check incoming
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(profile.getUserId(), currentUserId)
+                .ifPresent(f -> {
+                    dto.setStatus(f.getStatus().name());
+                    if (f.getStatus() == FriendshipStatus.PENDING) {
+                        dto.setDirection("INCOMING");
+                    } else if (f.getStatus() == FriendshipStatus.ACCEPTED) {
+                        dto.setDirection("FRIEND");
+                    }
+                });
+
+        result.add(dto);
     }
 
-    public FriendshipStatus getFriendshipStatus(Long currentUserId, Long targetUserId) {
-        Optional<Friendship> f1 = friendshipRepository.findByRequesterIdAndRecipientId(currentUserId, targetUserId);
-        if (f1.isPresent()) return f1.get().getStatus();
+    return result;
+}
 
-        Optional<Friendship> f2 = friendshipRepository.findByRequesterIdAndRecipientId(targetUserId, currentUserId);
-        if (f2.isPresent()) return f2.get().getStatus();
 
-        return null; 
-    }
+    // ---------------- SEND REQUEST ----------------
+    public void sendFriendRequest(Long requesterId, Long recipientId) {
 
-    public Friendship sendFriendRequest(Long requesterId, Long recipientId) throws Exception {
         if (requesterId.equals(recipientId)) {
-            throw new IllegalArgumentException("Cannot send request to yourself.");
+            throw new IllegalArgumentException("Cannot add yourself");
         }
 
-        FriendshipStatus status = getFriendshipStatus(requesterId, recipientId);
-        
-        if (status == FriendshipStatus.PENDING) {
-             throw new IllegalStateException("Friend request already pending.");
-        }
-        if (status == FriendshipStatus.ACCEPTED) {
-             throw new IllegalStateException("You are already friends.");
-        }
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(requesterId, recipientId)
+                .ifPresent(f -> {
+                    if (f.getStatus() == FriendshipStatus.PENDING) {
+                        throw new IllegalStateException("Request already pending");
+                    }
+                    if (f.getStatus() == FriendshipStatus.ACCEPTED) {
+                        throw new IllegalStateException("Already friends");
+                    }
+                    if (f.getStatus() == FriendshipStatus.REJECTED) {
+                        throw new IllegalStateException("Request was rejected");
+                    }
+                });
 
-        Friendship request = new Friendship();
-        request.setRequesterId(requesterId);
-        request.setRecipientId(recipientId);
-        request.setStatus(FriendshipStatus.PENDING);
-        Friendship savedRequest = friendshipRepository.save(request);
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(recipientId, requesterId)
+                .ifPresent(f -> {
+                    if (f.getStatus() == FriendshipStatus.PENDING) {
+                        throw new IllegalStateException("User already sent you a request");
+                    }
+                });
 
-        UserProfile senderProfile = userProfileRepository.findByUserId(requesterId)
-                .orElseThrow(() -> new RuntimeException("Sender profile not synced."));
+        Friendship friendship = new Friendship();
+        friendship.setRequesterId(requesterId);
+        friendship.setRecipientId(recipientId);
+        friendship.setStatus(FriendshipStatus.PENDING);
+        friendshipRepository.save(friendship);
 
-        Notification notification = new Notification();
-        notification.setRecipientId(recipientId);
-        notification.setSenderId(requesterId);
-        notification.setSenderSnapshot(new Notification.SenderSnapshot(
-                senderProfile.getUsername(), senderProfile.getAvatarUrl()
-        ));
-        notification.setType(Notification.NotificationType.FRIEND_REQ);
-        notification.setMessage("sent you a friend request");
-        notificationRepository.save(notification);
+        UserProfile sender =
+                userProfileRepository.findByUserId(requesterId).orElseThrow();
 
-        return savedRequest;
+        Notification n = new Notification();
+        n.setRecipientId(recipientId);
+        n.setSenderId(requesterId);
+        n.setType(Notification.NotificationType.FRIEND_REQ);
+        n.setMessage("sent you a friend request");
+        n.setSenderSnapshot(
+                new Notification.SenderSnapshot(
+                        sender.getUsername(),
+                        sender.getAvatarUrl()
+                )
+        );
+
+        notificationRepository.save(n);
     }
 
-    public void respondToRequest(Long currentUserId, Long requesterId, String action) throws Exception {
-        Optional<Friendship> friendshipOpt = friendshipRepository.findByRequesterIdAndRecipientId(requesterId, currentUserId);
-        
-        if (friendshipOpt.isEmpty()) throw new IllegalArgumentException("Pending request not found.");
-        
-        Friendship friendship = friendshipOpt.get();
-        if (friendship.getStatus() != FriendshipStatus.PENDING) {
-            throw new IllegalStateException("Request is not pending.");
-        }
+    // ---------------- RESPOND ----------------
+    public void respond(Long currentUserId, Long requesterId, String action) {
 
-        UserProfile recipientProfile = userProfileRepository.findByUserId(currentUserId).orElseThrow();
-        Notification.NotificationType type;
-        String message;
+        Friendship friendship =
+                friendshipRepository
+                        .findByRequesterIdAndRecipientId(requesterId, currentUserId)
+                        .orElseThrow(() -> new IllegalArgumentException("Request not found"));
+
+        if (friendship.getStatus() != FriendshipStatus.PENDING) {
+            throw new IllegalStateException("Request not pending");
+        }
 
         if ("accept".equalsIgnoreCase(action)) {
             friendship.setStatus(FriendshipStatus.ACCEPTED);
-            type = Notification.NotificationType.FRIEND_ACCEPT;
-            message = "accepted your friend request";
         } else if ("reject".equalsIgnoreCase(action)) {
             friendship.setStatus(FriendshipStatus.REJECTED);
-            type = Notification.NotificationType.FRIEND_REJECT;
-            message = "rejected your friend request";
         } else {
-            throw new IllegalArgumentException("Invalid action.");
+            throw new IllegalArgumentException("Invalid action");
         }
-        
+
         friendshipRepository.save(friendship);
-
-        Notification responseNotif = new Notification();
-        responseNotif.setRecipientId(requesterId);
-        responseNotif.setSenderId(currentUserId);
-        responseNotif.setSenderSnapshot(new Notification.SenderSnapshot(
-                recipientProfile.getUsername(), recipientProfile.getAvatarUrl()
-        ));
-        responseNotif.setType(type);
-        responseNotif.setMessage(message);
-        notificationRepository.save(responseNotif);
-    }
-    
-    // --- UPDATED: Retrieve Accepted Friends AND Pending Requests ---
-    public List<UserProfile> getFriendsAndRequests(Long userId) {
-        // 1. Friends (Accepted) - Sent by user
-        List<Friendship> sentAccepted = friendshipRepository.findByRequesterIdAndStatus(userId, FriendshipStatus.ACCEPTED);
-        // 2. Friends (Accepted) - Received by user
-        List<Friendship> receivedAccepted = friendshipRepository.findByRecipientIdAndStatus(userId, FriendshipStatus.ACCEPTED);
-        // 3. Pending Requests - Sent by user (User wants to see pending outgoing requests)
-        List<Friendship> sentPending = friendshipRepository.findByRequesterIdAndStatus(userId, FriendshipStatus.PENDING);
-        // 4. Pending Requests - Received by user (Optional: Show incoming requests in list too?)
-        List<Friendship> receivedPending = friendshipRepository.findByRecipientIdAndStatus(userId, FriendshipStatus.PENDING);
-        
-        List<Long> targetIds = new ArrayList<>();
-        
-        sentAccepted.forEach(f -> targetIds.add(f.getRecipientId()));
-        receivedAccepted.forEach(f -> targetIds.add(f.getRequesterId()));
-        sentPending.forEach(f -> targetIds.add(f.getRecipientId()));
-        receivedPending.forEach(f -> targetIds.add(f.getRequesterId()));
-        
-        // Remove duplicates if any (though logic should prevent duplicate active friendships)
-        List<Long> uniqueIds = targetIds.stream().distinct().collect(Collectors.toList());
-        
-        return userProfileRepository.findAllById(uniqueIds.stream().map(Object::toString).collect(Collectors.toList()));
     }
 
-    // --- Remove Friendship / Cancel Request ---
-    public void removeFriendship(Long currentUserId, Long targetUserId) {
-        Optional<Friendship> f1 = friendshipRepository.findByRequesterIdAndRecipientId(currentUserId, targetUserId);
-        if (f1.isPresent()) {
-            friendshipRepository.delete(f1.get());
-            return;
+    // ---------------- REMOVE / CANCEL ----------------
+    public void remove(Long currentUserId, Long targetUserId) {
+
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(currentUserId, targetUserId)
+                .ifPresent(friendshipRepository::delete);
+
+        friendshipRepository
+                .findByRequesterIdAndRecipientId(targetUserId, currentUserId)
+                .ifPresent(friendshipRepository::delete);
+    }
+
+    // ---------------- LIST FRIENDS & REQUESTS ----------------
+    public List<FriendshipDTO> getFriendsAndRequests(Long currentUserId) {
+
+        List<Friendship> friendships =
+                friendshipRepository.findByRequesterIdOrRecipientId(
+                        currentUserId, currentUserId
+                );
+
+        List<FriendshipDTO> result = new ArrayList<>();
+
+        for (Friendship f : friendships) {
+
+            boolean isRequester = f.getRequesterId().equals(currentUserId);
+            Long otherUserId = isRequester ? f.getRecipientId() : f.getRequesterId();
+
+            UserProfile profile =
+                    userProfileRepository.findByUserId(otherUserId).orElse(null);
+
+            if (profile == null) continue;
+
+            FriendshipDTO dto = new FriendshipDTO();
+            dto.setUserId(profile.getUserId());
+            dto.setUsername(profile.getUsername());
+            dto.setAvatarUrl(profile.getAvatarUrl());
+            dto.setMajor(profile.getMajor());
+            dto.setSchoolName(profile.getSchoolName());
+            dto.setStatus(f.getStatus().name());
+
+            if (f.getStatus() == FriendshipStatus.ACCEPTED) {
+                dto.setDirection("FRIEND");
+            } else if (f.getStatus() == FriendshipStatus.PENDING) {
+                dto.setDirection(isRequester ? "OUTGOING" : "INCOMING");
+            }
+
+            result.add(dto);
         }
-        Optional<Friendship> f2 = friendshipRepository.findByRequesterIdAndRecipientId(targetUserId, currentUserId);
-        if (f2.isPresent()) {
-            friendshipRepository.delete(f2.get());
-        }
+
+        return result;
     }
 }

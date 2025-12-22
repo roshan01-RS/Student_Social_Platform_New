@@ -8,26 +8,35 @@ import java.time.Instant;
 public class Notification {
     @Id
     private String id;
+
+    private Long recipientId; // Who receives the notification
+    private Long senderId;    // Who triggered it
     
-    private Long recipientId; 
-    private Long senderId;   
-    
+    // Snapshot to avoid extra DB lookups on frontend
     private SenderSnapshot senderSnapshot;
-    
+
     private NotificationType type;
-    private String message; 
+    private String message; // Human readable text (e.g., "liked your post")
     
-    private String relatedEntityId; 
+    // Links to the source content
+    private String referenceId; // e.g., PostID, GroupID, CommunityID
+    private String subReferenceId; // e.g., CommentID (optional)
+
     private boolean isRead = false;
-    private Instant createdAt = Instant.now();
+    private Instant timestamp = Instant.now();
 
     public enum NotificationType {
-        LIKE, COMMENT, FRIEND_REQ, FRIEND_ACCEPT, FRIEND_REJECT, GROUP_ADD, FOLLOW, SYSTEM // Added SYSTEM
+        FRIEND_REQ, FRIEND_ACCEPT, FRIEND_REJECT,
+        GROUP_ADD, GROUP_MESSAGE,
+        COMMUNITY_POST, COMMUNITY_JOIN,
+        POST_LIKE, POST_COMMENT, COMMENT_REPLY,
+        SYSTEM // Required by AdminService
     }
 
     public static class SenderSnapshot {
         public String username;
         public String avatarUrl;
+
         public SenderSnapshot() {}
         public SenderSnapshot(String username, String avatarUrl) {
             this.username = username;
@@ -35,7 +44,7 @@ public class Notification {
         }
     }
 
-    // Getters/Setters
+    // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
     public Long getRecipientId() { return recipientId; }
@@ -48,10 +57,12 @@ public class Notification {
     public void setType(NotificationType type) { this.type = type; }
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
-    public String getRelatedEntityId() { return relatedEntityId; }
-    public void setRelatedEntityId(String relatedEntityId) { this.relatedEntityId = relatedEntityId; }
+    public String getReferenceId() { return referenceId; }
+    public void setReferenceId(String referenceId) { this.referenceId = referenceId; }
+    public String getSubReferenceId() { return subReferenceId; }
+    public void setSubReferenceId(String subReferenceId) { this.subReferenceId = subReferenceId; }
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { isRead = read; }
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getTimestamp() { return timestamp; }
+    public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
 }

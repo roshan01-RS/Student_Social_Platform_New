@@ -5,7 +5,7 @@
     inset: 0;
     background-color: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
-    z-index: 9998; /* Very high z-index */
+    z-index: 9998;
     display: block;
 }
 
@@ -19,30 +19,22 @@
     background-color: #ffffff;
     border-radius: 16px;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    z-index: 9999; /* Highest z-index */
+    z-index: 9999;
     overflow: hidden;
-    /* Ensure flex layout for sticky header/footer behavior */
     display: flex;
     flex-direction: column;
-    max-height: 90vh;
+    max-height: 85vh; /* Constraints modal height */
 }
 
 /* Header */
 .cp-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 1.5rem 2rem;
+    justify-content: flex-end; /* Close button to right */
+    padding: 1rem 1.5rem;
     border-bottom: 1px solid #f3f4f6;
     flex-shrink: 0;
-    background-color: #ffffff; /* Ensure background is solid */
-}
-
-.cp-header h3 {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--dark-color, #111827);
-    margin: 0;
+    background-color: #ffffff;
 }
 
 .btn-icon {
@@ -62,82 +54,110 @@
     color: var(--dark-color, #111827);
 }
 
-/* Body */
+/* Body - Scrollable with Custom Scrollbar */
 .cp-body {
-    padding: 2rem;
+    padding: 1.5rem;
     overflow-y: auto;
     flex-grow: 1;
     background-color: #ffffff;
+    /* Custom Scrollbar Logic */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+/* Webkit Scrollbar (Chrome, Edge, Safari) */
+.cp-body::-webkit-scrollbar {
+    width: 6px;
+}
+.cp-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.cp-body::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+}
+.cp-body::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(107, 114, 128, 0.8);
 }
 
 .cp-user {
     display: flex;
     align-items: center;
-    gap: 1.2rem;
-    margin-bottom: 1.5rem;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
 }
 
 .cp-user img {
-    width: 4.5rem;
-    height: 4.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
     border-radius: 50%;
     object-fit: cover;
 }
 
 .cp-user-info .name {
     font-weight: 600;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     color: var(--dark-color, #111827);
     line-height: 1.2;
     margin: 0;
 }
 
 .cp-user-info .privacy {
-    font-size: 1.3rem;
+    font-size: 0.9rem;
     color: var(--text-secondary, #6b7280);
     margin: 0;
 }
 
 .cp-textarea {
     width: 100%;
-    min-height: 120px;
+    min-height: 100px;
     border: none;
     resize: none;
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     color: var(--text-primary, #1f2937);
-    font-family: sans-serif;
+    font-family: inherit;
     outline: none;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     background: transparent;
 }
 .cp-textarea::placeholder {
     color: #9ca3af;
 }
 
-/* Image Preview Styling */
+/* Fixed Image Preview Styling */
 #post-image-preview-container {
-    margin-bottom: 1.5rem;
-    position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #e5e7eb;
-}
-#post-image-preview {
     width: 100%;
-    display: block;
-    max-height: 300px;
-    object-fit: cover;
+    height: 280px; /* FIXED HEIGHT: Ensures modal doesn't jump */
+    background-color: #f8fafc;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+    overflow: hidden;
+    margin-bottom: 1rem;
+    position: relative;
+    display: none; /* Toggled via JS to 'flex' */
+    align-items: center;
+    justify-content: center;
 }
+
+#post-image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; /* Ensures entire image is visible without cropping */
+    display: block;
+}
+
 #remove-image-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: 0.8rem;
+    right: 0.8rem;
     background: rgba(0,0,0,0.6);
     color: white;
     border: none;
     border-radius: 50%;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2rem;
+    height: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -154,7 +174,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid #f3f4f6;
     background-color: #ffffff;
     flex-shrink: 0;
@@ -162,22 +182,21 @@
 
 .cp-tools {
     display: flex;
-    gap: 0.8rem;
+    gap: 0.5rem;
 }
 
-/* Photo/Emoji Buttons */
 .btn-tool {
     background: transparent;
     border: none;
-    padding: 0.8rem 1.2rem;
+    padding: 0.6rem 1rem;
     border-radius: 8px;
     color: var(--text-secondary, #6b7280);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    font-size: 1.4rem;
+    gap: 0.5rem;
+    font-size: 1rem;
     font-weight: 500;
 }
 .btn-tool:hover {
@@ -185,18 +204,14 @@
     color: var(--bright-purple, #7c3aed);
 }
 .btn-tool svg {
-    width: 2rem;
-    height: 2rem;
-    display: block;
-}
-.btn-tool span {
-    display: block;
+    width: 1.4rem;
+    height: 1.4rem;
 }
 
 /* Post Button */
 .btn-post {
-    padding: 0.8rem 2.4rem;
-    font-size: 1.4rem;
+    padding: 0.6rem 1.8rem;
+    font-size: 1rem;
     border-radius: 8px;
     background: #6366f1; 
     color: white;
@@ -212,12 +227,12 @@
     box-shadow: none;
 }
 .btn-post:not(:disabled) {
-    background: linear-gradient(to right, var(--bright-purple, #8b5cf6), var(--bright-pink, #ec4899));
-    box-shadow: 0 4px 12px rgba(181, 55, 242, 0.3);
+    background: linear-gradient(to right, #2063ce,#3b82f6);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 .btn-post:not(:disabled):hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(181, 55, 242, 0.4);
+    box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
 }
 
 /* Dark Mode */
@@ -254,4 +269,8 @@ body.dark-mode .btn-tool:hover {
 body.dark-mode .btn-post:disabled {
     background: #374151;
     color: #6b7280;
+}
+body.dark-mode #post-image-preview-container {
+    background-color: #111827;
+    border-color: #374151;
 }

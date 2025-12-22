@@ -1,46 +1,16 @@
-// Add to window.App
+// PostDetails.js - Robust Threaded Comments (No Polling)
 (function(App) {
 
-    // --- Mock Database: Store comments by Post ID ---
-    // Keys are post IDs ('1', '2'), values are arrays of comments
-    const mockCommentsDB = {
-        '1': [
-            {
-                id: 'c1',
-                author: 'Mike Chen',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike',
-                text: 'Totally agree! This channel deserves more subscribers.',
-                timestamp: '1 day ago',
-                likes: 45,
-                replies: []
-            }
-        ],
-        '2': [
-            {
-                id: 'c2',
-                author: 'Alex Turner',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-                text: 'Great post! Very insightful.',
-                timestamp: '3 days ago',
-                likes: 12,
-                replies: [
-                     {
-                        id: 'c2-1',
-                        author: 'Sarah Johnson',
-                        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-                        text: 'Thanks Alex!',
-                        timestamp: '2 days ago',
-                        likes: 3,
-                        replies: []
-                     }
-                ]
-            }
-        ]
-    };
+    const API_BASE = '';
+    let currentUserProfile = null;
+    
+    // Global state to track expanded threads
+    const expandedThreads = new Set();
 
+    // --- Template Helper ---
     async function getDetailsTemplate() {
         try {
-            const response = await fetch('post_details.html');
+            const response = await fetch('post_details.html?v=' + Date.now());
             if (!response.ok) throw new Error('post_details.html not found');
             const html = await response.text();
             const tempDiv = document.createElement('div');
@@ -52,55 +22,95 @@
         }
     }
 
-    // --- Recursive HTML builder ---
+    // --- Helper: Fetch Current User Profile ---
+    async function fetchCurrentUserProfile() {
+        if (currentUserProfile) return currentUserProfile;
+        try {
+            const profile = await App.fetchData('/api/my-profile');
+            if (profile) {
+                currentUserProfile = profile;
+                return profile;
+            }
+        } catch (e) { console.error("Failed to fetch profile", e); }
+        return null;
+    }
+
+    // --- Time Formatter ---
+    function formatTime(isoString) {
+        if(!isoString) return 'Just now';
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = (now - date) / 1000;
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff/60)}m`;
+        if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+        return date.toLocaleDateString();
+    }
+
+    // --- HTML Generators ---
     function buildCommentHTML(comment, isReply = false) {
-        const repliesHtml = comment.replies.length > 0 
-            ? `<div class="replies-list">${comment.replies.map(r => buildCommentHTML(r, true)).join('')}</div>`
-            : '';
+        const authorName = comment.author ? comment.author.username : 'Unknown';
+        const authorAvatar = comment.author ? comment.author.avatarUrl : 'https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown';
+        
+        // Check if this thread was previously expanded
+        const repliesContainerId = `replies-${comment.id}`;
+        const isExpanded = expandedThreads.has(repliesContainerId);
+        
+        const displayStyle = isExpanded ? 'block' : 'none';
+        const iconTransform = isExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+        const btnText = isExpanded ? 'Hide replies' : 'View replies';
 
         return `
         <div class="comment-wrapper" data-id="${comment.id}">
             <div class="comment-item ${isReply ? 'is-reply' : ''}">
-                <img src="${comment.avatar}" alt="${comment.author}" class="comment-avatar">
+                <img src="${authorAvatar}" alt="${authorName}" class="comment-avatar">
                 <div class="comment-body">
                     <div class="comment-header-row">
-                        <span class="comment-author">${comment.author}</span>
-                        <span class="comment-time">${comment.timestamp}</span>
+                        <span class="comment-author">${authorName}</span>
+                        <span class="comment-time">${formatTime(comment.timestamp)}</span>
                     </div>
-                    <p class="comment-text">${comment.text}</p>
+                    <p class="comment-text">${comment.content}</p>
                     <div class="comment-actions">
-                        <button class="c-action-btn like-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                            <span class="like-count">${comment.likes}</span>
-                        </button>
-                        <button class="c-action-btn reply-btn" data-author="${comment.author}">Reply</button>
+                        <button class="c-action-btn reply-btn" data-id="${comment.id}" data-author="${authorName}">Reply</button>
                     </div>
                 </div>
             </div>
-            ${repliesHtml}
+            
+            <!-- Threaded Replies Section -->
+            <div class="thread-section">
+                <!-- Drop Down Button -->
+                <button class="view-replies-btn js-toggle-replies" id="btn-${repliesContainerId}" data-target="${repliesContainerId}" style="display: none;">
+                    <span class="btn-text">${btnText}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s; transform: ${iconTransform};"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                
+                <!-- Container for threaded replies (FIX: class name must match CSS) -->
+                <div class="replies-list" id="${repliesContainerId}" style="display: ${displayStyle};">
+                    <!-- Replies injected here -->
+                </div>
+            </div>
         </div>
         `;
     }
 
-    // --- Main Function to Render Post Details ---
+    // --- Main Logic ---
     App.openPostDetails = async (panel, postData) => {
         const template = await getDetailsTemplate();
-        if (!template) return;
+        if (!template) {
+            panel.innerHTML = '<div style="padding:20px; color:red;">Failed to load template.</div>';
+            return;
+        }
 
         panel.innerHTML = '';
         panel.appendChild(template);
 
-        // 1. Setup Back Button
         const backBtn = panel.querySelector('#pd-back-btn');
         backBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            // Navigate back to home
-            if(window.handleNavigation) {
-                window.handleNavigation('home');
-            }
+            if (window.handleNavigation) window.handleNavigation('home');
         });
 
-        // 2. Render Original Post
+        // Render Original Post
         const originalPostContainer = panel.querySelector('#pd-original-post');
         originalPostContainer.innerHTML = `
             <div class="pd-original-header">
@@ -111,77 +121,150 @@
                 </div>
             </div>
             <p class="pd-original-text">${postData.content}</p>
-            ${postData.image ? `<img src="${postData.image}" class="pd-original-image">` : ''}
+            ${postData.image ? `<div style="margin-top:10px; border-radius:8px; overflow:hidden;"><img src="${postData.image}" class="pd-original-image" style="width:100%; display:block;"></div>` : ''}
             <div class="pd-original-stats">
                 <span>${postData.likes} Likes</span>
                 <span>${postData.comments} Comments</span>
             </div>
         `;
 
-        // 3. Load Comments for THIS specific post
-        // If no comments exist for this ID, initialize an empty array
-        if (!mockCommentsDB[postData.id]) {
-            mockCommentsDB[postData.id] = [];
+        // Update Sender Avatar in Footer
+        const footerAvatar = panel.querySelector('.pd-input-wrapper .user-avatar-xs');
+        const userProfile = await fetchCurrentUserProfile();
+        if (userProfile && footerAvatar) {
+            footerAvatar.src = userProfile.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User';
         }
-        
-        // Reference to the specific array for this post
-        // Note: We are referencing the array inside the object, so push updates persist
-        const currentPostComments = mockCommentsDB[postData.id];
+
+        // Recursive Reply Loader
+        const loadRepliesRecursive = async (commentId) => {
+            try {
+                const replies = await App.fetchData(`/api/comments/${commentId}/replies`);
+                if (replies && replies.length > 0) {
+                    const containerId = `replies-${commentId}`;
+                    const container = document.getElementById(containerId);
+                    const toggleBtn = document.getElementById(`btn-${containerId}`);
+                    
+                    if (container && toggleBtn) {
+                        const newHtml = replies.map(r => buildCommentHTML(r, true)).join('');
+                        if (container.innerHTML !== newHtml) {
+                            container.innerHTML = newHtml;
+                            toggleBtn.style.display = 'flex';
+                            
+                            const isExpanded = expandedThreads.has(containerId);
+                            toggleBtn.querySelector('.btn-text').textContent = isExpanded 
+                                ? 'Hide replies' 
+                                : `View ${replies.length} replies`;
+                            
+                            replies.forEach(r => loadRepliesRecursive(r.id));
+                        }
+                    }
+                }
+            } catch (e) { }
+        };
 
         const commentsList = panel.querySelector('#pd-comments-list');
         
-        const renderList = () => {
-            if (currentPostComments.length === 0) {
-                commentsList.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:2rem;">No comments yet. Be the first!</p>';
-            } else {
-                commentsList.innerHTML = currentPostComments.map(c => buildCommentHTML(c)).join('');
-            }
-        };
-        renderList();
+        const loadComments = async () => {
+            try {
+                const comments = await App.fetchData(`/api/comments/post/${postData.id}`);
+                
+                if (!comments || comments.length === 0) {
+                    if (commentsList.innerHTML.includes('Loading')) {
+                        commentsList.innerHTML = '<p style="text-align:center; color:#9ca3af; padding:2rem;">No comments yet.</p>';
+                    }
+                    return;
+                }
 
-        // 4. Handle Input
+                commentsList.innerHTML = comments.map(c => buildCommentHTML(c)).join('');
+                comments.forEach(c => loadRepliesRecursive(c.id));
+
+            } catch (err) { console.error("Poll failed", err); }
+        };
+        
+        commentsList.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">Loading comments...</div>';
+        await loadComments();
+
+        // Input Logic
         const input = panel.querySelector('#pd-reply-input');
         const replyBtn = panel.querySelector('#pd-reply-btn');
+        let replyToId = null; 
+
+        commentsList.addEventListener('click', (e) => {
+            const btnReply = e.target.closest('.reply-btn');
+            if (btnReply) {
+                const author = btnReply.dataset.author;
+                replyToId = btnReply.dataset.id;
+                // Update placeholder, not value
+                input.placeholder = `Replying to ${author}...`;
+                input.focus(); 
+                return;
+            }
+
+            const btnToggle = e.target.closest('.js-toggle-replies');
+            if (btnToggle) {
+                const targetId = btnToggle.dataset.target;
+                const container = document.getElementById(targetId);
+                const icon = btnToggle.querySelector('svg');
+                const textSpan = btnToggle.querySelector('.btn-text');
+                
+                if (container) {
+                    const isHidden = container.style.display === 'none';
+                    if (isHidden) {
+                        container.style.display = 'block';
+                        expandedThreads.add(targetId);
+                        icon.style.transform = 'rotate(180deg)';
+                        textSpan.textContent = 'Hide replies';
+                    } else {
+                        container.style.display = 'none';
+                        expandedThreads.delete(targetId);
+                        icon.style.transform = 'rotate(0deg)';
+                        textSpan.textContent = 'View replies';
+                    }
+                }
+            }
+        });
 
         input.addEventListener('input', () => {
             if(input.value.trim().length > 0) replyBtn.removeAttribute('disabled');
             else replyBtn.setAttribute('disabled', 'true');
         });
 
-        // Event Delegation for Replies
-        commentsList.addEventListener('click', (e) => {
-            const replyButton = e.target.closest('.reply-btn');
-            if (replyButton) {
-                const author = replyButton.dataset.author;
-                input.value = `@${author} `; 
-                input.focus(); 
-                replyBtn.removeAttribute('disabled');
-            }
-        });
-
-        replyBtn.addEventListener('click', () => {
+        replyBtn.addEventListener('click', async () => {
             const text = input.value;
             if(!text.trim()) return;
 
-            const newComment = {
-                id: Date.now().toString(),
-                author: 'You',
-                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=You',
-                text: text,
-                timestamp: 'Just now',
-                likes: 0,
-                replies: []
-            };
-            
-            // Add to THIS post's array
-            currentPostComments.unshift(newComment);
-            
-            renderList(); 
-            input.value = '';
-            replyBtn.setAttribute('disabled', 'true');
-            
-            // Optional: Update comment count on the main feed object if needed
-            // postData.comments++;
+            replyBtn.textContent = '...';
+            replyBtn.disabled = true;
+
+            try {
+                const payload = {
+                    postId: postData.id,
+                    content: text,
+                    parentCommentId: replyToId
+                };
+
+                const res = await fetch(`${API_BASE}/api/comments/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'credentials': 'include' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    input.placeholder = "Post your reply..."; 
+                    replyToId = null;
+                    replyBtn.textContent = 'Reply';
+                    await loadComments();
+                } else {
+                    alert("Failed to post comment");
+                    replyBtn.textContent = 'Reply';
+                    replyBtn.disabled = false;
+                }
+            } catch (e) {
+                console.error(e);
+                replyBtn.textContent = 'Reply';
+                replyBtn.disabled = false;
+            }
         });
     };
 

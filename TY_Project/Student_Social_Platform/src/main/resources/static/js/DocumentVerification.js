@@ -19,7 +19,6 @@ window.App = window.App || {};
             console.warn(`[NOTIFICATION FALLBACK - ${type.toUpperCase()}] ${message}`);
         }
     };
-    // --- End Helper ---
 
     App.syncDocumentVerificationState = (profileData) => {
         if (profileData.verificationStatus) {
@@ -30,9 +29,6 @@ window.App = window.App || {};
         verificationState.idCardUrl = profileData.idCardUrl;
         verificationState.receiptUrl = profileData.receiptUrl;
         verificationState.accountExpireDate = profileData.accountExpireDate;
-        
-        // FIX: Removed the automatic dispatch here to prevent infinite re-render loops.
-        // If the profile loads as VERIFIED, Home.js already knows not to restrict.
     };
     
     // --- NEW: Real-time Update Method (for Admin pushes) ---
@@ -46,7 +42,6 @@ window.App = window.App || {};
         }
         
         if (newStatus === 'VERIFIED') {
-            // This is the correct place to dispatch for UNLOCKING/REAL-TIME feedback
             document.dispatchEvent(new Event('profile-verified'));
         }
     };
@@ -110,7 +105,7 @@ window.App = window.App || {};
         if (verificationState.status === 'NONE') {
             html = `
             <div class="doc-verification-card doc-card-initial">
-                <h2 style="font-size:1.6rem;margin-bottom:1.5rem;text-align:left;color:inherit;">Document Verification</h2>
+                <h2 style="font-size:1.6rem;margin-bottom:1.5rem;text-align:left;color:inherit;color: #3b82f6;">Document Verification</h2>
                 <div class="doc-icon-large">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
@@ -191,7 +186,7 @@ window.App = window.App || {};
         }
     };
 
-    // --- MODAL LOGIC (FIXED CLOSE BUTTON) ---
+    // --- MODAL LOGIC ---
     App.openUploadDocumentsModal = async () => {
         const modal = document.getElementById('reusable-modal');
         const modalContent = document.getElementById('reusable-modal-content');
@@ -207,41 +202,28 @@ window.App = window.App || {};
         setTimeout(() => modal.classList.add('show'), 10);
         modal.classList.add('modal-large');
 
-        // FIX: Ensure elements exist before adding listeners by using a small delay or check
-        // Using setTimeout(0) pushes execution to the end of the event loop, ensuring DOM paint.
         setTimeout(() => {
             const close = () => {
                 modal.classList.remove('show');
                 setTimeout(() => { modal.style.display = 'none'; modalContent.innerHTML = ''; }, 300);
             };
             
-            // --- FIX START: Binding the close button robustly ---
-            // 1. Bind the "X" button inside the modal header
+            // Close bindings
             const closeBtn = modalContent.querySelector('.js-close-upload-docs');
-            if(closeBtn) {
-                closeBtn.addEventListener('click', close);
-            }
-            
-            // 2. Bind the "Cancel" button at the bottom
+            if(closeBtn) closeBtn.addEventListener('click', close);
             const cancelBtn = modalContent.querySelector('.btn-secondary');
-            if(cancelBtn) {
-                cancelBtn.addEventListener('click', close);
-            }
+            if(cancelBtn) cancelBtn.addEventListener('click', close);
             
-            // 3. Also bind the global modal close button if present
             const globalCloseBtn = modal.querySelector('.js-close-modal');
             if (globalCloseBtn) {
-                // Remove old listeners by cloning, then attach new one
                 const newGlobalBtn = globalCloseBtn.cloneNode(true);
                 globalCloseBtn.parentNode.replaceChild(newGlobalBtn, globalCloseBtn);
                 newGlobalBtn.addEventListener('click', close);
             }
 
-            // 4. Backdrop Click
             modal.onclick = (e) => {
                 if (e.target === modal) close();
             };
-            // --- FIX END ---
 
             let idFile = null;
             let receiptFile = null;
@@ -276,7 +258,6 @@ window.App = window.App || {};
 
             if (idDropzone && idInput) {
                 idDropzone.addEventListener('click', (e) => {
-                     // Prevent triggering file input if clicking remove button
                      if (!e.target.closest('.btn-remove-file') && !e.target.closest('.btn-remove-file-icon')) {
                          idInput.click();
                      }
@@ -319,16 +300,10 @@ window.App = window.App || {};
                 if (submitBtn) submitBtn.setAttribute('disabled', 'true');
             };
 
-            // Bind Remove Buttons (Text and Icon) safely
             const btnRemoveId = document.getElementById('btn-remove-id-card');
             if (btnRemoveId) btnRemoveId.addEventListener('click', removeIdCard);
-            const btnRemoveIdIcon = document.getElementById('btn-remove-id-card-icon');
-            if (btnRemoveIdIcon) btnRemoveIdIcon.addEventListener('click', removeIdCard);
-
             const btnRemoveReceipt = document.getElementById('btn-remove-fee-receipt');
             if (btnRemoveReceipt) btnRemoveReceipt.addEventListener('click', removeReceipt);
-            const btnRemoveReceiptIcon = document.getElementById('btn-remove-fee-receipt-icon');
-            if (btnRemoveReceiptIcon) btnRemoveReceiptIcon.addEventListener('click', removeReceipt);
 
             if (submitBtn) {
                 submitBtn.addEventListener('click', async () => {
@@ -353,14 +328,9 @@ window.App = window.App || {};
                                 const panel = document.querySelector('.content-panel');
                                 window.App.renderProfile(panel); 
                             }
-                            
-                            // ADDED: Global Notification instead of Alert
                             if (window.App.showGlobalNotification) {
                                 window.App.showGlobalNotification("Documents submitted successfully!", "success");
-                            } else {
-                                console.log("Documents submitted");
                             }
-
                         } else {
                             const err = await res.json();
                             showNotification("Upload failed: " + (err.error || "Unknown error"), "error");

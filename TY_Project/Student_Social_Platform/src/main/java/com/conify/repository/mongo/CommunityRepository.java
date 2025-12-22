@@ -7,7 +7,9 @@ import java.util.List;
 
 @Repository
 public interface CommunityRepository extends MongoRepository<Community, String> {
+    // Find communities containing a specific member
     List<Community> findByMemberIdsContaining(Long userId);
+    
+    // Search communities by name (case insensitive matching usually done via regex in service or custom query)
     List<Community> findByNameContainingIgnoreCase(String name);
-    List<Community> findByCategory(String category);
 }

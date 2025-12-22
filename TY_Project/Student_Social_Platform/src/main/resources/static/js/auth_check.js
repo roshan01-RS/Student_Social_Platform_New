@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000'; // Your backend
+const API_BASE = ''; // Your backend
 
 async function logout() {
     // *** FIX: Added credentials: 'include' to the logout fetch ***

@@ -1,14 +1,17 @@
-// Add to window.App
+// CommunityPanel.js - Integrated with Backend (Real Data)
 (function(App) {
+
+    const API_BASE = 'http://localhost:8000';
+    let currentUser = null;
+    let imageFileToUpload = null;
 
     // --- Helper: Fetch HTML & Clean it ---
     async function loadHtml(url) {
         try {
-            console.log(`[CommunityPanel] Fetching ${url}...`);
-            const response = await fetch(url + '?v=' + new Date().getTime());
+            const fetchUrl = url.startsWith('/') ? url : `/${url}`;
+            const response = await fetch(fetchUrl + '?v=' + new Date().getTime());
             if (!response.ok) throw new Error(`Failed to load ${url}`);
             let text = await response.text();
-            // Clean Live Server injections if present
             text = text.replace(/<!-- Code injected by live-server -->[\s\S]*?<\/script>/gi, "");
             return text;
         } catch (err) {
@@ -17,7 +20,35 @@
         }
     }
 
-    // --- 1. Hardcoded Layout (Main Shell) ---
+    // --- Helper: Notification ---
+    function showNotification(msg, type = 'success') {
+        if (window.showGlobalNotification) window.showGlobalNotification(msg, type);
+        else console.log(`[${type.toUpperCase()}] ${msg}`);
+    }
+
+    // --- Helper: Format Time ---
+    function formatTime(isoString) {
+        if (!isoString) return 'Just now';
+        const date = new Date(isoString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // --- Helper: Generate Community Avatar (Initials) ---
+    function getCommunityAvatar(comm) {
+        if (comm.icon && comm.icon.includes('http')) return `<img src="${comm.icon}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        
+        // Fallback to initials
+        const name = comm.name || 'Community';
+        const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+        // Generate a consistent color based on name length
+        const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+        const color = colors[name.length % colors.length];
+        
+        // Ensure circular shape
+        return `<div style="width:100%; height:100%; background-color:${color}; color:white; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:bold; border-radius:50%; overflow:hidden;">${initials}</div>`;
+    }
+
+    // --- Layout HTML (main) ---
     const COMMUNITY_LAYOUT_HTML = `
     <div class="community-layout">
         <div class="community-list-sidebar">
@@ -27,7 +58,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                         Create
                     </button>
-                     <button class="btn-create-community" id="search-community-btn" style="flex: 1; justify-content: center; background: linear-gradient(135deg, #3b82f6, #2563eb);" title="Search & Join Communities">
+                      <button class="btn-create-community" id="search-community-btn" style="flex: 1; justify-content: center; background: linear-gradient(135deg, #3b82f6, #2563eb);" title="Search & Join Communities">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         Search
                     </button>
@@ -52,64 +83,64 @@
     </div>
     `;
 
-    // --- Mock Data ---
-    const communities = [
-        { id: '1', name: 'Tech Enthusiasts', icon: '💻', members: 1250, description: 'All things tech, code, and gadgets.', joined: true, posts: [
-            { author: 'Admin', time: '2h ago', content: 'Welcome to the Tech Innovators community! Share your ideas here.' }
-        ]},
-        { id: '2', name: 'Campus Arts', icon: '🎨', members: 850, description: 'Painting, music, and digital art share.', joined: true, posts: [] }
-    ];
-
-    const allCommunities = [
-        { id: '1', name: 'Tech Enthusiasts', icon: '💻', members: 1250, description: 'All things tech.' },
-        { id: '2', name: 'Campus Arts', icon: '🎨', members: 850, description: 'Art share.' },
-        { id: '3', name: 'Student Startups', icon: '🚀', members: 430, description: 'Founders network.' },
-        { id: '4', name: 'Gaming Lounge', icon: '🎮', members: 2100, description: 'Gaming.' },
-        { id: '5', name: 'Photography Club', icon: '📸', members: 300, description: 'Photo walks.' },
-        { id: '6', name: 'Debate Society', icon: '🎤', members: 150, description: 'Public speaking.' }
-    ];
-
+    // State
+    let myCommunities = [];
     let selectedCommunity = null;
     let mainPanelRef = null;
+
+    async function fetchCurrentUser() {
+        if(currentUser) return;
+        try { currentUser = await App.fetchData('/api/my-profile'); } catch(e){}
+    }
 
     // --- Main Render Function ---
     App.renderCommunity = async (panel) => {
         mainPanelRef = panel;
-        console.log("Rendering Community Panel (Interactive v7)...");
-
-        // 1. Inject Layout
+        await fetchCurrentUser();
+        
         panel.innerHTML = COMMUNITY_LAYOUT_HTML;
         
-        // 2. Render List
+        // Initial Fetch
+        await fetchMyCommunities();
         renderCommunityList(panel);
         
-        // 3. Bind Listeners
+        // Listeners
         const searchInput = panel.querySelector('#community-search-input');
         if(searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                renderCommunityList(panel, e.target.value);
-            });
+            searchInput.addEventListener('input', (e) => renderCommunityList(panel, e.target.value));
         }
         
         const createBtn = panel.querySelector('#create-community-btn');
-        if(createBtn) {
-            createBtn.addEventListener('click', openCreateCommunityModal);
-        }
+        if(createBtn) createBtn.addEventListener('click', openCreateCommunityModal);
 
         const searchBtn = panel.querySelector('#search-community-btn');
-        if(searchBtn) {
-            console.log("Search button found, attaching listener.");
-            searchBtn.addEventListener('click', openSearchCommunityModal);
-        } else {
-            console.error("Search button #search-community-btn not found in layout.");
-        }
+        if(searchBtn) searchBtn.addEventListener('click', openSearchCommunityModal);
     };
+
+    async function fetchMyCommunities() {
+        try {
+            const res = await App.fetchData('/api/communities/my-communities');
+            if (Array.isArray(res)) {
+                // Map backend structure to frontend structure
+                myCommunities = res.map(c => ({
+                    id: c.id,
+                    name: c.name,
+                    icon: c.icon || '🌐',
+                    description: c.description || '',
+                    members: c.memberIds ? c.memberIds.length : 0,
+                    ownerId: c.ownerId, 
+                    joined: true,
+                    posts: [] 
+                }));
+            }
+        } catch(e) { console.error("Failed to fetch communities", e); }
+    }
     
     function renderCommunityList(panel, filter = '') {
         const listContainer = panel.querySelector('#community-list-container');
         if (!listContainer) return;
 
-        const filtered = communities.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
+        const filtered = myCommunities.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
 
         if (filtered.length === 0) {
             listContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">No communities found</div>';
@@ -117,12 +148,12 @@
         }
 
         listContainer.innerHTML = filtered.map(comm => {
-             const iconHtml = comm.icon.includes('<div') ? comm.icon : `<div style="font-size:2rem;">${comm.icon}</div>`;
+             const iconHtml = getCommunityAvatar(comm);
              
              return `
             <button class="community-item-button ${selectedCommunity?.id === comm.id ? 'active' : ''}" data-comm-id="${comm.id}">
                 <div class="community-item-inner">
-                    <div class="community-icon-wrapper">${iconHtml}</div>
+                    <div class="community-icon-wrapper" style="overflow:hidden; padding:0; border-radius: 50%;">${iconHtml}</div>
                     <div class="community-item-details">
                         <span class="community-name">${comm.name}</span>
                         <span class="community-meta">${comm.members} members</span>
@@ -134,14 +165,14 @@
         listContainer.querySelectorAll('.community-item-button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const commId = btn.dataset.commId;
-                selectedCommunity = communities.find(c => c.id === commId);
+                selectedCommunity = myCommunities.find(c => c.id === commId);
                 renderCommunityList(panel, filter); 
                 renderCommunityFeed(panel);
             });
         });
     }
 
-    function renderCommunityFeed(panel) {
+    async function renderCommunityFeed(panel) {
         const feedContainer = panel.querySelector('#community-feed-window');
         if (!feedContainer) return;
 
@@ -156,27 +187,61 @@
             return;
         }
 
-        const joinText = selectedCommunity.joined ? 'Joined' : 'Join';
-        const btnClass = selectedCommunity.joined ? 'btn-join joined' : 'btn-join';
-        const iconHtml = selectedCommunity.icon.includes('<div') ? selectedCommunity.icon : `<div style="font-size:2.5rem;">${selectedCommunity.icon}</div>`;
+        const iconHtml = getCommunityAvatar(selectedCommunity);
 
-        feedContainer.innerHTML = `
-            <div class="community-header">
-                <div class="community-header-info">
-                    <div class="community-header-icon">${iconHtml}</div>
-                    <div class="community-header-text">
-                        <h2>${selectedCommunity.name}</h2>
-                        <p>${selectedCommunity.description}</p>
+        // --- Logic: Only joined members see feed content ---
+        if (!selectedCommunity.joined) {
+             feedContainer.innerHTML = `
+                <div class="community-header">
+                    <div class="community-header-info">
+                        <div class="community-header-icon" style="overflow:hidden; padding:0; width:5rem; height:5rem; border-radius:50%;">${iconHtml}</div>
+                        <div class="community-header-text">
+                            <h2>${selectedCommunity.name}</h2>
+                            <p>${selectedCommunity.description}</p>
+                        </div>
+                    </div>
+                    <div class="community-header-actions">
+                        <button id="rejoin-community-btn" class="btn-primary">Join Community</button>
                     </div>
                 </div>
-                <div class="community-header-actions">
-                    <button id="join-community-btn" class="${btnClass}">${joinText}</button>
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#6b7280; gap:10px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <p style="font-size:1.1rem;">You must join this community to view posts.</p>
                 </div>
-            </div>
-            
-            <div class="community-feed" id="community-feed-area"></div>
+             `;
+             
+             const rejoinBtn = feedContainer.querySelector('#rejoin-community-btn');
+             if(rejoinBtn) {
+                 rejoinBtn.addEventListener('click', async () => {
+                     // Re-join logic
+                     try {
+                        const res = await fetch(`${API_BASE}/api/communities/${selectedCommunity.id}/join`, { method: 'POST', credentials: 'include' });
+                        if(res.ok) {
+                            selectedCommunity.joined = true;
+                            renderCommunityFeed(panel);
+                        }
+                     } catch(e) {}
+                 });
+             }
+             return;
+        }
 
-            <div class="community-chat-box" style="${selectedCommunity.joined ? '' : 'display:none;'}">
+        // --- Logic: Only Admin (Owner) can post ---
+        const isAdmin = currentUser && String(currentUser.userId) === String(selectedCommunity.ownerId);
+        // Define btnClass for "Joined" button
+        const btnClass = 'btn-join joined';
+
+        let inputHtml = '';
+        if (isAdmin) {
+             inputHtml = `
+            <div class="community-chat-box">
+                <div id="comm-preview-container" class="image-preview-container" style="display:none; padding: 0.8rem 1.5rem 0 1.5rem; margin-bottom: 0.5rem; background: transparent;">
+                    <div style="display:flex; align-items:center;">
+                        <img id="comm-preview-img" src="" class="preview-img" style="height: 40px; width: auto; margin-right: 10px;">
+                        <span id="comm-preview-text" style="color:#9ca3af; font-size:1.2rem;">Image ready.</span>
+                        <button id="comm-remove-preview-btn" class="btn-remove-preview" title="Remove" style="margin-left: auto;">✕</button>
+                    </div>
+                </div>
                 <div class="chat-input-wrapper">
                      <button class="btn-icon" id="comm-image-btn" title="Upload Image">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -189,44 +254,315 @@
                      <input type="file" id="comm-file-input" style="display: none;" accept="image/*">
 
                      <div class="chat-input-field-wrapper">
-                        <input type="text" id="comm-message-input" placeholder="Post to community..." class="chat-input-field">
+                        <input type="text" id="comm-message-input" placeholder="Post an update..." class="chat-input-field">
                      </div>
                      <button class="chat-send-btn" id="comm-send-btn">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                      </button>
                 </div>
-            </div>
-        `;
-
-        renderPosts(feedContainer);
-
-        const joinBtn = feedContainer.querySelector('#join-community-btn');
-        if(joinBtn) {
-            joinBtn.addEventListener('click', () => {
-                selectedCommunity.joined = !selectedCommunity.joined;
-                const globalComm = communities.find(c => c.id === selectedCommunity.id);
-                if(globalComm) globalComm.joined = selectedCommunity.joined;
-                renderCommunityList(mainPanelRef);
-                renderCommunityFeed(mainPanelRef);
-            });
+            </div>`;
+        } else {
+             // Non-admin view (no input)
+             inputHtml = `<div style="padding:10px; text-align:center; color:#9ca3af; border-top:1px solid #e5e7eb; font-size:0.9rem;">Only admins can post in this community. You can reply to posts.</div>`;
         }
 
-        const sendBtn = feedContainer.querySelector('#comm-send-btn');
-        const input = feedContainer.querySelector('#comm-message-input');
-        const emojiBtn = feedContainer.querySelector('#comm-emoji-btn');
-        const imageBtn = feedContainer.querySelector('#comm-image-btn');
-        const fileInput = feedContainer.querySelector('#comm-file-input');
+        feedContainer.innerHTML = `
+            <div class="community-header">
+                <div class="community-header-info">
+                    <div class="community-header-icon" style="overflow:hidden; padding:0; width:5rem; height:5rem; border-radius:50%;">${iconHtml}</div>
+                    <div class="community-header-text">
+                        <h2>${selectedCommunity.name}</h2>
+                        <p>${selectedCommunity.description}</p>
+                    </div>
+                </div>
+                <div class="community-header-actions">
+                    <button id="leave-community-btn" class="${btnClass}">Joined</button>
+                </div>
+            </div>
+            
+            <div class="community-feed" id="community-feed-area" style="padding-bottom: 20px;">
+                 <!-- Posts injected here -->
+            </div>
+            ${inputHtml}
+        `;
+
+        await fetchCommunityMessages(feedContainer);
+        
+        if (isAdmin) attachCommunityListeners(feedContainer);
+
+        const leaveBtn = feedContainer.querySelector('#leave-community-btn');
+        if(leaveBtn) {
+            leaveBtn.addEventListener('click', async () => {
+                // FIXED: Use Modal instead of simple confirm
+                openLeaveConfirmModal(async () => {
+                    try {
+                        const res = await fetch(`${API_BASE}/api/communities/${selectedCommunity.id}/join`, {
+                            method: 'POST', credentials: 'include'
+                        });
+                        if (res.ok) {
+                            showNotification("You have left the community.");
+                            await fetchMyCommunities();
+                            selectedCommunity = null; 
+                            renderCommunityList(mainPanelRef);
+                            
+                            feedContainer.innerHTML = `
+                            <div class="chat-placeholder">
+                                <p>Select a community to view</p>
+                            </div>`;
+                        }
+                    } catch(e) { console.error(e); }
+                });
+            });
+        }
+    }
+    
+    function openLeaveConfirmModal(onConfirm) {
+        const modal = document.createElement('div');
+        modal.className = 'leave-modal-overlay';
+        modal.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:10000; backdrop-filter:blur(2px);";
+        
+        modal.innerHTML = `
+            <div class="leave-modal-card" style="background:white; padding:25px; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); max-width:350px; width:90%; text-align:center;">
+                <h3 style="margin-top:0; color:#1f2937;">Leave Community?</h3>
+                <p style="color:#6b7280; margin:15px 0;">You will no longer receive updates from this community.</p>
+                <div class="leave-modal-actions" style="display:flex; justify-content:center; gap:15px; margin-top:20px;">
+                    <button class="leave-btn-cancel" style="padding:8px 16px; border:1px solid #d1d5db; background:white; border-radius:6px; cursor:pointer;">Cancel</button>
+                    <button class="leave-btn-confirm" style="padding:8px 16px; border:none; background:#ef4444; color:white; border-radius:6px; cursor:pointer;">Leave</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        modal.querySelector('.leave-btn-cancel').addEventListener('click', () => modal.remove());
+        modal.querySelector('.leave-btn-confirm').addEventListener('click', () => {
+            modal.remove();
+            onConfirm();
+        });
+    }
+
+    async function fetchCommunityMessages(container) {
+        if (!selectedCommunity) return;
+        try {
+            const res = await App.fetchData(`/api/communities/${selectedCommunity.id}/messages`);
+            if (Array.isArray(res)) {
+                // Transform messages to post format
+                selectedCommunity.posts = res.map(m => {
+                    // FIXED: Correctly construct full image URL with API_BASE
+                    const rawUrl = m.mediaUrl;
+                    let fullUrl = null;
+                    if (rawUrl && rawUrl !== 'null' && rawUrl !== '') {
+                        fullUrl = rawUrl.startsWith('http') ? rawUrl : `${API_BASE}/${rawUrl}`;
+                    }
+
+                    return {
+                        id: m.id, 
+                        author: m.senderName,
+                        isAdmin: String(m.senderId) === String(selectedCommunity.ownerId),
+                        authorAvatar: m.senderAvatar,
+                        time: formatTime(m.timestamp),
+                        content: m.content,
+                        mediaUrl: fullUrl,
+                        comments: m.commentCount || 0,
+                        likes: m.likes ? m.likes.length : 0, 
+                        isLiked: m.likes && m.likes.includes(Number(currentUser.userId)) 
+                    };
+                });
+                renderPosts(container);
+            }
+        } catch(e) { console.error("Failed to fetch community messages", e); }
+    }
+
+    function renderPosts(container) {
+        const feed = container.querySelector('#community-feed-area');
+        if(!feed) return;
+        
+        const postsToRender = selectedCommunity.posts || [];
+
+        if (postsToRender.length === 0) {
+            feed.innerHTML = '<p style="text-align:center; padding:2rem; color:#9ca3af">No updates yet.</p>';
+            return;
+        }
+        
+        feed.innerHTML = postsToRender.map(p => {
+             // FIXED: Ensure image URL is valid before rendering
+             const imgHtml = p.mediaUrl ? `
+                <div class="post-image-container" style="width: 100%; max-height: 300px; overflow: hidden; border-radius: 8px; margin-top: 10px; background: #000;">
+                    <img src="${p.mediaUrl}" style="width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                </div>
+                <a href="${p.mediaUrl}" download target="_blank" style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px; display:inline-block; text-decoration:underline;">Download</a>` : '';
+
+             return `
+            <div class="post-card" style="margin-bottom:1.5rem;">
+                <div class="post-header">
+                    <div class="post-author-info">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h3 class="post-author-name" style="font-size:1.4rem; font-weight:600; color:var(--dark-color); margin:0;">${p.author}</h3>
+                            ${p.isAdmin ? `<span style="font-size:0.8rem; background:#dbeafe; color:#1e40af; padding:2px 6px; border-radius:4px; font-weight:600;">Admin</span>` : ''}
+                            <span class="post-author-meta" style="font-size:1.1rem; color:var(--text-secondary); margin-left:4px;">• ${p.time}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="post-content" style="font-size:1.4rem; line-height:1.5; color:var(--dark-color); margin-top:0.5rem;">${p.content}</div>
+                ${imgHtml}
+                
+                <div style="margin-top:10px; padding-top:10px; border-top:1px solid #f3f4f6; display: flex; gap: 20px; align-items: center;">
+                     <button class="btn-ghost js-like-btn" data-post-id="${p.id}" style="color:${p.isLiked ? '#ef4444' : '#6b7280'}; font-size:1rem; cursor:pointer; background:none; border:none; padding:0; display: flex; align-items: center; gap: 5px;">
+                        <svg class="icon-heart" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="${p.isLiked ? '#ef4444' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        <span class="like-count">${p.likes}</span> Like
+                    </button>
+                    <button class="btn-ghost js-reply-btn" data-post-id="${p.id}" style="color:#4f46e5; font-size:1rem; cursor:pointer; background:none; border:none; padding:0; display: flex; align-items: center; gap: 5px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                        <span class="comment-count">${p.comments}</span> Reply
+                    </button>
+                </div>
+            </div>
+        `;
+        }).join('');
+        
+        // Bind Like Button
+        feed.querySelectorAll('.js-like-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.postId;
+                const post = selectedCommunity.posts.find(p => p.id === postId);
+                if (!post) return;
+
+                post.isLiked = !post.isLiked;
+                post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
+                
+                const icon = btn.querySelector('svg');
+                const countSpan = btn.querySelector('.like-count');
+                
+                if (post.isLiked) {
+                    btn.style.color = '#ef4444';
+                    icon.setAttribute('fill', '#ef4444');
+                } else {
+                    btn.style.color = '#6b7280';
+                    icon.setAttribute('fill', 'none');
+                }
+                countSpan.textContent = post.likes;
+
+                try {
+                    await fetch(`${API_BASE}/api/communities/messages/${postId}/like`, { method: 'POST', credentials: 'include' });
+                } catch(err) { console.error("Like failed", err); }
+            });
+        });
+
+        // Bind Reply Button
+        feed.querySelectorAll('.js-reply-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const postId = btn.dataset.postId;
+                const post = selectedCommunity.posts.find(p => p.id === postId);
+                
+                const postData = {
+                    id: post.id,
+                    author: {
+                        name: post.author,
+                        avatar: post.authorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User', 
+                        major: 'Community Post' 
+                    },
+                    timestamp: post.time,
+                    content: post.content,
+                    image: post.mediaUrl,
+                    likes: post.likes,
+                    comments: post.comments
+                };
+
+                // Use PostDetails logic
+                const communityView = document.getElementById('view-communities'); 
+                const detailsView = document.getElementById('view-post-details');
+                
+                if (detailsView) {
+                    if (communityView) communityView.style.display = 'none';
+                    document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
+                    detailsView.style.display = 'flex';
+                    
+                    const detailsPanel = detailsView.querySelector('.content-panel');
+                    if(window.App.openPostDetails && detailsPanel) {
+                         window.App.openPostDetails(detailsPanel, postData);
+                         
+                         setTimeout(() => {
+                             const backBtn = detailsView.querySelector('#pd-back-btn');
+                             if(backBtn) {
+                                 const newBack = backBtn.cloneNode(true);
+                                 backBtn.parentNode.replaceChild(newBack, backBtn);
+                                 newBack.addEventListener('click', (ev) => {
+                                     ev.preventDefault();
+                                     detailsView.style.display = 'none'; 
+                                     if (mainPanelRef && mainPanelRef.parentElement) {
+                                         mainPanelRef.parentElement.style.display = 'flex';
+                                     } else {
+                                         if (communityView) communityView.style.display = 'flex';
+                                     }
+                                     renderCommunityFeed(mainPanelRef); 
+                                 });
+                             }
+                         }, 100);
+                    }
+                } else {
+                    console.error("Post details view container not found in DOM.");
+                    showNotification("Could not open post details.", "error");
+                }
+            });
+        });
+    }
+
+    function attachCommunityListeners(container) {
+        const sendBtn = container.querySelector('#comm-send-btn');
+        const input = container.querySelector('#comm-message-input');
+        const emojiBtn = container.querySelector('#comm-emoji-btn');
+        const imageBtn = container.querySelector('#comm-image-btn');
+        const fileInput = container.querySelector('#comm-file-input');
+        const previewContainer = container.querySelector('#comm-preview-container');
+        const previewImg = container.querySelector('#comm-preview-img');
+        const removePreviewBtn = container.querySelector('#comm-remove-preview-btn');
+
+        const clearPreview = () => {
+            imageFileToUpload = null;
+            previewContainer.style.display = 'none';
+            fileInput.value = '';
+        };
+
+        if(removePreviewBtn) removePreviewBtn.addEventListener('click', (e) => { e.preventDefault(); clearPreview(); });
 
         if(sendBtn && input) {
-            sendBtn.addEventListener('click', () => {
+            const handleSend = async () => {
                 const text = input.value.trim();
-                if(!text) return;
-                selectedCommunity.posts.unshift({ author: 'You', time: 'Just now', content: text });
-                input.value = '';
-                renderPosts(feedContainer);
-            });
-            
-            input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendBtn.click(); });
+                if(!text && !imageFileToUpload) return;
+                
+                let mediaUrl = null;
+                if (imageFileToUpload) {
+                    const formData = new FormData();
+                    formData.append('file', imageFileToUpload);
+                    try {
+                        const upRes = await fetch(`${API_BASE}/api/posts/create-media`, { method: 'POST', credentials: 'include', body: formData });
+                        if(upRes.ok) {
+                            const data = await upRes.json();
+                            mediaUrl = data.url; // Relative Path
+                        }
+                    } catch(e) { showNotification("Image upload failed", "error"); return; }
+                }
+                
+                try {
+                    const res = await fetch(`${API_BASE}/api/communities/${selectedCommunity.id}/messages`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'credentials': 'include'},
+                        body: JSON.stringify({ content: text, mediaUrl: mediaUrl })
+                    });
+                    
+                    if (res.ok) {
+                        input.value = '';
+                        clearPreview();
+                        fetchCommunityMessages(container);
+                    } else {
+                        showNotification("Failed to post message", "error");
+                    }
+                } catch(e) { console.error("Post failed", e); }
+            };
+
+            sendBtn.addEventListener('click', handleSend);
+            input.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleSend(); });
             
             if(emojiBtn && App.openEmojiPanel) {
                 emojiBtn.addEventListener('click', (e) => {
@@ -239,41 +575,19 @@
                 imageBtn.addEventListener('click', () => fileInput.click());
                 fileInput.addEventListener('change', (e) => {
                     if(e.target.files && e.target.files[0]) {
+                        imageFileToUpload = e.target.files[0];
                         const reader = new FileReader();
                         reader.onload = (evt) => {
-                            const imgHtml = `<img src="${evt.target.result}" style="max-width:100%; border-radius:8px; margin-top:10px;">`;
-                            selectedCommunity.posts.unshift({ author: 'You', time: 'Just now', content: imgHtml });
-                            renderPosts(feedContainer);
+                            previewImg.src = evt.target.result;
+                            previewContainer.style.display = 'flex';
                         };
-                        reader.readAsDataURL(e.target.files[0]);
+                        reader.readAsDataURL(imageFileToUpload);
                     }
-                    fileInput.value = '';
                 });
             }
         }
     }
 
-    function renderPosts(container) {
-        const feed = container.querySelector('#community-feed-area');
-        if(!feed) return;
-        if (selectedCommunity.posts.length === 0) {
-            feed.innerHTML = '<p style="text-align:center; padding:2rem; color:#9ca3af">No posts yet.</p>';
-            return;
-        }
-        feed.innerHTML = selectedCommunity.posts.map(p => `
-            <div class="post-card">
-                <div class="post-header">
-                    <div class="post-author-info">
-                        <h3 class="post-author-name" style="font-size:1.4rem; font-weight:600; color:var(--dark-color);">${p.author}</h3>
-                        <p class="post-author-meta" style="font-size:1.1rem; color:var(--text-secondary);">${p.time}</p>
-                    </div>
-                </div>
-                <div class="post-content" style="font-size:1.4rem; line-height:1.5; color:var(--dark-color);">${p.content}</div>
-            </div>
-        `).join('');
-    }
-
-    // --- Create Community Modal ---
     async function openCreateCommunityModal() {
         const container = document.getElementById('create-group-modal-container'); 
         if (!container) return;
@@ -286,6 +600,7 @@
         const createBtn = container.querySelector('#submit-community-btn');
         const nameInput = container.querySelector('#community-name');
         const descInput = container.querySelector('#community-desc');
+        
         const closeModal = () => { container.innerHTML = ''; };
         closeBtns.forEach(btn => btn.addEventListener('click', closeModal));
 
@@ -295,60 +610,49 @@
                 else createBtn.setAttribute('disabled', 'true');
             });
 
-            createBtn.addEventListener('click', () => {
+            createBtn.addEventListener('click', async () => {
                 const name = nameInput.value.trim();
-                const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                const avatarHtml = `<div style="width:100%; height:100%; background-color:#8b5cf6; color:white; display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:bold; border-radius:inherit;">${initials}</div>`;
-                const newComm = { id: Date.now().toString(), name: name, icon: avatarHtml, members: 1, description: descInput ? descInput.value.trim() : 'New community', joined: true, posts: [] };
-                communities.unshift(newComm);
-                if(mainPanelRef) renderCommunityList(mainPanelRef);
-                closeModal();
+                const desc = descInput ? descInput.value.trim() : '';
+                const avatarIcon = `🌐`; 
+
+                try {
+                    const res = await fetch(`${API_BASE}/api/communities/create`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'credentials': 'include'},
+                        body: JSON.stringify({ name: name, description: desc, icon: avatarIcon })
+                    });
+                    if (res.ok) {
+                        closeModal();
+                        await fetchMyCommunities();
+                        if(mainPanelRef) renderCommunityList(mainPanelRef);
+                    } else {
+                        alert("Failed to create community.");
+                    }
+                } catch(e) { console.error(e); }
             });
         }
     }
 
-    // --- Search/Join Community Modal (Robust Fix) ---
     async function openSearchCommunityModal() {
-        console.log("[CommunityPanel] Opening Search Modal...");
-        
-        // 1. Use global reusable modal container
         const modalContainer = document.getElementById('reusable-modal');
         const modalContent = document.getElementById('reusable-modal-content');
         const globalCloseBtn = modalContainer.querySelector('.js-close-modal');
 
-        if (!modalContainer || !modalContent) {
-            console.error("CRITICAL: #reusable-modal not found");
-            return;
-        }
+        if (!modalContainer || !modalContent) return;
 
-        // 2. Fetch HTML
         const modalHtml = await loadHtml('search_community.html');
-        if (!modalHtml) {
-            console.error("CRITICAL: search_community.html failed to load");
-            return;
-        }
+        if (!modalHtml) return;
 
-        // 3. Inject Content
         modalContent.innerHTML = modalHtml;
-        
-        // 4. Show Modal (Flex first to allow rendering)
         modalContainer.style.display = 'flex';
         
-        // 5. Delay Logic to ensure DOM is ready before querying
         setTimeout(() => {
             modalContainer.classList.add('show');
             modalContainer.classList.add('modal-large');
 
-            // 6. Re-query elements now that they are definitely in the DOM
             const resultsContainer = modalContent.querySelector('#community-search-results');
             const searchInput = modalContent.querySelector('#search-community-input');
             
-            if (!resultsContainer || !searchInput) {
-                console.error("CRITICAL: Search modal elements not found. Check IDs in search_community.html");
-                return;
-            }
-
-            // 7. Close Logic
             const closeModal = () => {
                 modalContainer.classList.remove('show');
                 modalContainer.classList.remove('modal-large');
@@ -358,74 +662,73 @@
                 }, 300);
             };
 
-            // Re-bind close buttons
             const newCloseBtn = globalCloseBtn.cloneNode(true);
             globalCloseBtn.parentNode.replaceChild(newCloseBtn, globalCloseBtn);
             newCloseBtn.addEventListener('click', closeModal);
-            
             modalContent.querySelectorAll('.js-close-search-community').forEach(btn => btn.addEventListener('click', closeModal));
             modalContainer.onclick = (e) => { if (e.target === modalContainer) closeModal(); };
 
-            // 8. Render Logic
-            const renderResults = (filter = '') => {
-                let results = [];
-                let titleText = "Your Communities";
-                
-                if (filter.trim() === '') {
-                    results = communities.filter(c => c.joined);
-                } else {
-                    titleText = "Search Results";
-                    results = allCommunities.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
-                }
+            const performSearch = async (query = '') => {
+                resultsContainer.innerHTML = '<div style="padding:20px;text-align:center;">Searching...</div>';
+                try {
+                    const url = query ? `/api/communities/list?query=${encodeURIComponent(query)}` : `/api/communities/list`;
+                    const res = await App.fetchData(url);
+                    
+                    if (!res || res.length === 0) {
+                        resultsContainer.innerHTML = '<div style="padding:20px;text-align:center;">No communities found</div>';
+                        return;
+                    }
 
-                const titleEl = modalContent.querySelector('h4');
-                if(titleEl) titleEl.textContent = titleText;
+                    resultsContainer.innerHTML = res.map(comm => {
+                        const isJoined = myCommunities.some(c => c.id === comm.id);
+                        const btnText = isJoined ? 'Joined' : 'Join';
+                        const btnClass = isJoined ? 'btn-secondary' : 'btn-primary';
+                        const iconHtml = getCommunityAvatar(comm);
 
-                if (results.length === 0) {
-                    resultsContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">No communities found</div>';
-                    return;
-                }
+                        return `
+                        <div class="community-result-item">
+                             <div class="result-icon" style="width:3rem; height:3rem; border-radius:50%; overflow:hidden; padding:0;">${iconHtml}</div>
+                             <div class="result-info">
+                                 <span class="result-name">${comm.name}</span>
+                                 <span class="result-meta">${comm.memberIds ? comm.memberIds.length : 0} members</span>
+                             </div>
+                             <button class="${btnClass} js-join-btn" data-id="${comm.id}" style="padding:0.6rem 1.2rem; border-radius:8px; font-size:1rem; cursor:pointer;">${btnText}</button>
+                        </div>`;
+                    }).join('');
 
-                resultsContainer.innerHTML = results.map(comm => {
-                    const existing = communities.find(c => c.id === comm.id);
-                    const isJoined = existing ? existing.joined : false;
-                    const btnText = isJoined ? 'Joined' : 'Join';
-                    const btnClass = isJoined ? 'btn-secondary' : 'btn-primary';
-                    const iconContent = comm.icon.includes('<div') ? comm.icon : comm.icon;
-
-                    return `
-                    <div class="community-result-item">
-                         <div class="result-icon">${iconContent}</div>
-                         <div class="result-info">
-                             <span class="result-name">${comm.name}</span>
-                             <span class="result-meta">${comm.members} members</span>
-                         </div>
-                         <button class="${btnClass} js-join-btn" data-id="${comm.id}" style="padding:0.6rem 1.2rem; border-radius:8px; font-size:1.2rem; cursor:pointer;">${btnText}</button>
-                    </div>`;
-                }).join('');
-
-                resultsContainer.querySelectorAll('.js-join-btn').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const id = btn.dataset.id;
-                        const targetComm = allCommunities.find(c => c.id === id);
-                        let existing = communities.find(c => c.id === id);
-                        
-                        if (existing) {
-                            existing.joined = !existing.joined;
-                        } else if (targetComm) {
-                            const newEntry = { ...targetComm, joined: true, posts: [] };
-                            communities.push(newEntry);
-                        }
-                        renderResults(searchInput.value);
-                        if(mainPanelRef) renderCommunityList(mainPanelRef);
+                    resultsContainer.querySelectorAll('.js-join-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            e.stopPropagation();
+                            const id = btn.dataset.id;
+                            try {
+                                const joinRes = await fetch(`${API_BASE}/api/communities/${id}/join`, {
+                                    method: 'POST', credentials: 'include'
+                                });
+                                if (joinRes.ok) {
+                                    const data = await joinRes.json();
+                                    if(data.joined) {
+                                        btn.textContent = 'Joined';
+                                        btn.className = 'btn-secondary js-join-btn';
+                                    } else {
+                                        btn.textContent = 'Join';
+                                        btn.className = 'btn-primary js-join-btn';
+                                    }
+                                    await fetchMyCommunities();
+                                    if(mainPanelRef) renderCommunityList(mainPanelRef);
+                                }
+                            } catch(err) { console.error(err); }
+                        });
                     });
-                });
+
+                } catch(e) {
+                     resultsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:red;">Error loading data</div>';
+                }
             };
 
-            renderResults();
-            searchInput.addEventListener('input', (e) => renderResults(e.target.value));
+            performSearch();
+            searchInput.addEventListener('input', (e) => performSearch(e.target.value));
 
-        }, 50); // Small delay to ensure HTML injection is complete
+        }, 50);
     }
 
 })(window.App = window.App || {});

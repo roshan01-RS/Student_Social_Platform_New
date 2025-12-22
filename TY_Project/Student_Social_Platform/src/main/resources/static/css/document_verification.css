@@ -2,6 +2,27 @@
    DOCUMENT VERIFICATION STYLES
    ========================================= */
 
+/* --- Modal Scrollbar & Modernization --- */
+.amm-body::-webkit-scrollbar {
+    width: 6px;
+}
+.amm-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.amm-body::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.15);
+    border-radius: 10px;
+}
+.amm-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+
+/* Modal Description Text */
+.modal-desc {
+    color: #6b7280; 
+}
+
 /* --- Modal Styles --- */
 .upload-section {
     margin-bottom: 2rem;
@@ -92,29 +113,7 @@
 }
 .btn-remove-file:hover { text-decoration: underline; }
 
-/* NEW: Icon Remove Button Style */
-.btn-remove-file-icon {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    transition: background 0.2s;
-}
-.btn-remove-file-icon:hover {
-    background: rgba(239, 68, 68, 0.8); /* Red on hover */
-}
-
-/* --- Profile Card States (Replaces old verification card) --- */
+/* --- Profile Card States --- */
 
 .doc-verification-card {
     border-radius: 1.2rem;
@@ -164,34 +163,6 @@
     background-color: #3b82f6;
     animation: pulse 2s infinite;
 }
-.doc-preview-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin: 2rem 0;
-}
-.doc-preview-item {
-    background: white;
-    border: 1px solid #dbeafe;
-    border-radius: 8px;
-    padding: 0.5rem;
-}
-.doc-preview-img {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 4px;
-    opacity: 0.7;
-}
-.doc-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 1.2rem;
-    color: #2563eb;
-    margin-top: 0.5rem;
-    justify-content: center;
-}
 
 /* 3. Verified State */
 .doc-card-verified {
@@ -202,28 +173,31 @@
 .doc-icon-verified {
     background-color: #10b981;
 }
-.doc-preview-item.verified {
-    border-color: #86efac;
-    position: relative;
-}
-.verified-tag {
-    position: absolute;
-    top: 5px; right: 5px;
-    background: #16a34a;
-    color: white;
-    font-size: 1rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: 99px;
-    display: flex; gap: 0.3rem; align-items: center;
-}
 
-/* Dark Mode Overrides */
+/* --- Dark Mode Overrides --- */
 body.dark-mode .doc-card-initial {
     background: #1e1e24;
     border-color: #374151;
 }
 body.dark-mode .doc-title { color: #e5e7eb; }
 body.dark-mode .doc-desc { color: #9ca3af; }
+
+/* Dark Mode Modal Specifics */
+body.dark-mode .amm-header,
+body.dark-mode .amm-footer {
+    background-color: #1f1f1f !important;
+    border-color: #374151 !important;
+    color: #fff !important;
+}
+body.dark-mode .amm-body {
+    background-color: #111827;
+}
+body.dark-mode .amm-body::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.2);
+}
+body.dark-mode .modal-desc {
+    color: #9ca3af;
+}
 body.dark-mode .upload-box {
     background-color: #111827;
     border-color: #374151;
@@ -231,10 +205,8 @@ body.dark-mode .upload-box {
 body.dark-mode .upload-box:hover {
     background-color: #1f2937;
 }
-body.dark-mode .upload-label { color: #d1d5db; }
+body.dark-mode .upload-label { color: #e5e7eb; }
 body.dark-mode .upload-text-main { color: #e5e7eb; }
+body.dark-mode .upload-text-sub { color: #9ca3af; }
 body.dark-mode .upload-preview img { background-color: #374151; }
-body.dark-mode .doc-preview-item {
-    background-color: #111827;
-    border-color: #374151;
-}
+body.dark-mode .file-name { color: #e5e7eb; }

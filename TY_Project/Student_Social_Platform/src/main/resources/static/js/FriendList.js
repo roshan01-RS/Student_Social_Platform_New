@@ -1,227 +1,269 @@
-// friend_list.js
+// FriendList.js
 window.App = window.App || {};
 
-(function(App) {
+(function (App) {
 
-    const API_BASE = 'http://localhost:8000';
+    const API_BASE = '';
 
-    // --- Helper: Robust Notification (FIXED SCOPE) ---
-    const showNotification = (message, type = 'success') => {
-        if (typeof window.showGlobalNotification === 'function') {
-            window.showGlobalNotification(message, type);
-        } else if (App.showGlobalNotification) {
-             App.showGlobalNotification(message, type);
+    // 🔹 CACHE TO REMOVE LAG
+    let cachedFriendsHtml = null;
+    let searchListenerAttached = false;
+   
+    // NEW: Polling for auto-update
+    let pollInterval = null;
+
+    /* ---------------- UTIL ---------------- */
+
+    const notify = (msg, type = 'success') => {
+        if (window.showGlobalNotification) {
+            window.showGlobalNotification(msg, type);
         } else {
-             console.log(`[${type.toUpperCase()}] ${message}`);
+            console.log(type.toUpperCase(), msg);
         }
     };
 
-    async function loadHtml(url) {
-        try {
-            const response = await fetch(url + '?v=' + new Date().getTime());
-            if (!response.ok) throw new Error(`Failed to load ${url}`);
-            return await response.text();
-        } catch (err) {
-            return null;
-        }
+    async function fetchHtml(url) {
+        if (cachedFriendsHtml) return cachedFriendsHtml;
+        const r = await fetch(url + '?v=' + Date.now());
+        if (!r.ok) throw new Error('HTML load failed');
+        cachedFriendsHtml = await r.text();
+        return cachedFriendsHtml;
     }
 
-    function renderStatusButtons(user) {
-        const status = user.status || 'NONE'; 
-        const userId = user.userId;
-        const buttonClasses = "style='font-size: 1.2rem; padding: 0.5rem 1rem;'";
-        
-        let buttonsHtml = '';
+    /* ---------------- RENDER ---------------- */
 
-        switch (status) {
-            case 'ACCEPTED':
-                buttonsHtml = `
-                    <button class="btn btn-primary js-message-friend" data-id="${userId}" ${buttonClasses}>Message</button>
-                    <button class="btn btn-unfriend js-unfriend" data-id="${userId}" data-action="unfriend" ${buttonClasses}>Unfriend</button>`;
-                break;
-            case 'PENDING':
-                // Use data-action="cancel" for the unfriend endpoint handler
-                buttonsHtml = `<button class="btn btn-unfriend js-unfriend" data-id="${userId}" data-action="cancel" ${buttonClasses}>Cancel Request</button>`;
-                break;
-            case 'NONE':
-            case 'REJECTED':
-            default:
-                buttonsHtml = `<button class="btn btn-primary js-add-friend" data-id="${userId}" ${buttonClasses}>Add Friend</button>`;
-                break;
+    function renderButtons(u) {
+        if (u.status === 'ACCEPTED') {
+            return `
+              <button class="btn btn-primary js-message" data-id="${u.userId}">Message</button>
+              <button class="btn btn-unfriend js-remove" data-id="${u.userId}">Unfriend</button>`;
         }
-        return `<div style="display:flex; gap: 0.5rem;">${buttonsHtml}</div>`;
+
+        if (u.status === 'PENDING' && u.direction === 'OUTGOING') {
+            return `<button class="btn btn-unfriend js-remove" data-id="${u.userId}">Cancel</button>`;
+        }
+
+        if (u.status === 'PENDING' && u.direction === 'INCOMING') {
+            return `
+              <button class="btn btn-primary js-accept" data-id="${u.userId}">Accept</button>
+              <button class="btn btn-unfriend js-reject" data-id="${u.userId}">Reject</button>`;
+        }
+
+        return `<button class="btn btn-primary js-add" data-id="${u.userId}">Add Friend</button>`;
     }
-    
-    function renderFriendListItem(user) {
-        const nameDisplay = user.username ? user.username.replace('@', '') : 'Unknown';
-        const majorDisplay = user.major || user.schoolName || 'Student';
-        const avatarUrl = user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${nameDisplay}`;
-        
+
+    function renderItem(u) {
+        const avatar = u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`;
         return `
         <div class="friend-list-item">
-            <img src="${avatarUrl}" alt="${nameDisplay}" class="friend-avatar"/>
+            <img class="friend-avatar" src="${avatar}">
             <div class="friend-info">
-                <span class="friend-name">${nameDisplay}</span>
-                <span class="friend-major">${majorDisplay}</span>
+                <div class="friend-name">${u.username}</div>
+                <div class="friend-major">${u.major || u.schoolName || ''}</div>
             </div>
-            ${renderStatusButtons(user)}
+            ${renderButtons(u)}
         </div>`;
     }
 
-    App.openFriendsModal = async () => {
-        const modalContainer = document.getElementById('reusable-modal');
-        const modalContent = document.getElementById('reusable-modal-content');
+    /* ---------------- DATA ---------------- */
 
-        if (!modalContainer || !modalContent) return;
-
+    async function loadFriends(container) {
+        // Only show loading on initial load or if empty
+        if (!container.children.length) {
+             container.innerHTML = `<div style="padding:20px;text-align:center;color:#888">Loading...</div>`;
+        }
+       
         try {
-            modalContent.innerHTML = '<div style="padding:5rem;text-align:center;color:#666;">Loading...</div>';
-            modalContainer.style.display = 'flex';
-            const modalHtml = await loadHtml('friend_list.html');
-            if (!modalHtml) return;
-            modalContent.innerHTML = modalHtml;
-            setTimeout(() => modalContainer.classList.add('show'), 10);
-            modalContainer.classList.add('modal-large');
+            const r = await fetch(`${API_BASE}/api/friendship/list-friends`, {
+                credentials: 'include'
+            });
+            const data = await r.json();
 
-            const closeModal = () => {
-                modalContainer.classList.remove('show', 'modal-large');
-                setTimeout(() => modalContainer.style.display = 'none', 300);
+            if (!data || data.length === 0) {
+                container.innerHTML =
+                    `<div style="padding:20px;text-align:center;color:#888">
+                        You have no friends or pending requests.
+                     </div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(renderItem).join('');
+            bindActions(container);
+        } catch {
+            container.innerHTML =
+                `<div style="padding:20px;text-align:center;color:red">Failed to load</div>`;
+        }
+    }
+
+    async function searchUsers(query, container) {
+        try {
+            const r = await fetch(
+                `${API_BASE}/api/friendship/search?query=${encodeURIComponent(query)}`,
+                { credentials: 'include' }
+            );
+            const data = await r.json();
+
+            if (!data || data.length === 0) {
+                container.innerHTML =
+                    `<div style="padding:20px;text-align:center;color:#888">No users found.</div>`;
+                return;
+            }
+
+            container.innerHTML = data.map(renderItem).join('');
+            bindActions(container);
+        } catch {
+            container.innerHTML =
+                `<div style="padding:20px;text-align:center;color:red">Search failed</div>`;
+        }
+    }
+
+    /* ---------------- ACTIONS ---------------- */
+
+    function bindActions(container) {
+
+        container.querySelectorAll('.js-add').forEach(b => {
+            b.onclick = async () => {
+                await fetch(`${API_BASE}/api/friendship/request`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipientId: Number(b.dataset.id) })
+                });
+                notify('Request sent');
+                loadFriends(container);
             };
+        });
 
-            modalContent.querySelectorAll('.js-close-modal').forEach(btn => btn.addEventListener('click', closeModal));
-            modalContainer.onclick = (e) => { if (e.target === modalContainer) closeModal(); };
+        container.querySelectorAll('.js-remove').forEach(b => {
+            b.onclick = async () => {
+                await fetch(`${API_BASE}/api/friendship/remove`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ targetUserId: Number(b.dataset.id) })
+                });
+                notify('Updated');
+                loadFriends(container);
+                if (App.refreshChatList) App.refreshChatList(); // Sync Chat Sidebar
+               
+                // Immediately check if open chat is affected and disable input
+                if (App.refreshCurrentChatState) App.refreshCurrentChatState();
+            };
+        });
 
-            const searchInput = modalContent.querySelector('.friend-search-bar');
-            const listContainer = modalContent.querySelector('.friend-list');
-            
-            // Initial load of accepted friends + pending requests
-            loadFriendsAndRequests(listContainer);
+        container.querySelectorAll('.js-accept').forEach(b => {
+            b.onclick = async () => {
+                await fetch(`${API_BASE}/api/friendship/respond`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requesterId: Number(b.dataset.id), action: 'accept' })
+                });
+                notify('Friend added');
+                loadFriends(container);
+                if (App.refreshChatList) App.refreshChatList(); // Sync Chat
+            };
+        });
 
-            let debounceTimer;
-            searchInput.addEventListener('input', (e) => {
-                clearTimeout(debounceTimer);
-                const query = e.target.value.trim();
-                
-                if (query.length === 0) {
-                     loadFriendsAndRequests(listContainer);
-                     return;
-                }
-                if (query.length < 3) return;
+        container.querySelectorAll('.js-reject').forEach(b => {
+            b.onclick = async () => {
+                await fetch(`${API_BASE}/api/friendship/respond`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ requesterId: Number(b.dataset.id), action: 'reject' })
+                });
+                notify('Request rejected');
+                loadFriends(container);
+            };
+        });
+       
+        container.querySelectorAll('.js-message').forEach(b => {
+             b.onclick = () => {
+                 // Close modal
+                 const modal = document.getElementById('reusable-modal');
+                 if(modal) {
+                     // Stop polling
+                     if (pollInterval) clearInterval(pollInterval);
+                     
+                     modal.classList.remove('show', 'modal-large');
+                     setTimeout(() => modal.style.display = 'none', 300);
+                 }
+                 // Start chat
+                 const userId = b.dataset.id;
+                 const name = b.parentElement.querySelector('.friend-name')?.textContent;
+                 if (userId && window.App.startChatWithUser) {
+                     window.App.startChatWithUser({ id: userId, name: name });
+                 }
+             };
+        });
+    }
 
-                debounceTimer = setTimeout(() => {
-                    performSearch(query, listContainer);
+    /* ---------------- MODAL ---------------- */
+
+    App.openFriendsModal = async () => {
+
+        const modal = document.getElementById('reusable-modal');
+        const content = document.getElementById('reusable-modal-content');
+
+        modal.style.display = 'flex';
+        modal.classList.add('modal-large');
+
+        content.innerHTML = await fetchHtml('friend_list.html');
+        requestAnimationFrame(() => modal.classList.add('show'));
+       
+        const list = content.querySelector('.friend-list');
+        const search = content.querySelector('.friend-search-bar');
+       
+        loadFriends(list);
+
+        // --- AUTO UPDATE LOGIC ---
+        // Clear previous interval if any
+        if (pollInterval) clearInterval(pollInterval);
+       
+        // Poll every 5 seconds to auto-update list
+        pollInterval = setInterval(() => {
+            const searchVal = search ? search.value.trim() : '';
+            // Only auto-refresh if user is NOT searching (to avoid overwriting results)
+            if (!searchVal && modal.classList.contains('show')) {
+                loadFriends(list);
+            }
+        }, 5000);
+
+        // CLOSE HANDLER
+        const closeModal = (e) => {
+            if (e) e.preventDefault();
+            if (pollInterval) clearInterval(pollInterval);
+            modal.classList.remove('show', 'modal-large');
+            setTimeout(() => modal.style.display = 'none', 300);
+           
+            // Sync chat state on close just in case
+            if (App.refreshCurrentChatState) App.refreshCurrentChatState();
+        };
+
+        const closeSelectors = '.js-close-modal, .modal-close, .close, .btn-close, [data-dismiss="modal"]';
+        // Updated: Search entire modal for close buttons, not just inner content
+        modal.querySelectorAll(closeSelectors).forEach(btn => {
+            btn.onclick = closeModal;
+        });
+
+        modal.onclick = e => {
+            if (e.target === modal) closeModal();
+        };
+
+        if (!searchListenerAttached && search) {
+            let debounce;
+            search.addEventListener('input', e => {
+                clearTimeout(debounce);
+                const q = e.target.value.trim();
+
+                debounce = setTimeout(() => {
+                    if (!q) loadFriends(list);
+                    else if (q.length >= 3) searchUsers(q, list);
                 }, 300);
             });
-            
-            async function loadFriendsAndRequests(container) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">Loading friends...</div>';
-                try {
-                    // FIX: This returns ACCEPTED and PENDING sent requests
-                    const results = await App.fetchData(`/api/friendship/list-friends`);
-                    
-                    if (!results || results.length === 0) {
-                        container.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">You have no friends or pending requests.</div>';
-                        return;
-                    }
-                    container.innerHTML = results.map(renderFriendListItem).join('');
-                    attachListeners(container, ''); // Pass empty query for full list refresh
-                } catch (err) {
-                    container.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Failed to load list.</div>';
-                }
-            }
-
-            async function performSearch(query, container) {
-                container.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">Searching...</div>';
-                try {
-                    const results = await App.fetchData(`/api/friendship/search?query=${encodeURIComponent(query)}`);
-                    if (!results || results.length === 0) {
-                        container.innerHTML = '<div style="padding:20px; text-align:center; color:#888;">No users found.</div>';
-                        return;
-                    }
-                    container.innerHTML = results.map(renderFriendListItem).join('');
-                    attachListeners(container, query);
-                } catch (err) {
-                    container.innerHTML = '<div style="padding:20px; text-align:center; color:red;">Search failed.</div>';
-                }
-            }
-            
-            function attachListeners(container, currentQuery) {
-                // 1. Send Request
-                container.querySelectorAll('.js-add-friend').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const recipientId = btn.dataset.id;
-                        const oldText = btn.textContent;
-                        btn.disabled = true;
-                        btn.textContent = 'Sending...';
-                        try {
-                            const res = await fetch(`${API_BASE}/api/friendship/request`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'credentials': 'include' },
-                                body: JSON.stringify({ recipientId: parseInt(recipientId) })
-                            });
-                            if (res.ok) {
-                                showNotification('Friend request sent!', 'success');
-                                if(currentQuery) performSearch(currentQuery, container);
-                                else loadFriendsAndRequests(container);
-                            } else {
-                                const err = await res.json();
-                                const msg = err.error || 'Request failed';
-                                showNotification(msg.replace('IllegalStateException:', ''), 'error');
-                                btn.disabled = false;
-                                btn.textContent = oldText;
-                            }
-                        } catch (err) { btn.disabled = false; btn.textContent = 'Add Friend'; }
-                    });
-                });
-
-                // 2. Unfriend / Cancel Request (FIXED FUNCTIONALITY)
-                container.querySelectorAll('.js-unfriend').forEach(btn => {
-                     btn.addEventListener('click', async () => {
-                        const targetId = btn.dataset.id;
-                        const action = btn.dataset.action; // 'unfriend' or 'cancel'
-                        const isCancel = action === 'cancel';
-                        if(!confirm(isCancel ? "Cancel request?" : "Remove friend?")) return;
-
-                        try {
-                            const res = await fetch(`${API_BASE}/api/friendship/remove`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'credentials': 'include' },
-                                body: JSON.stringify({ targetUserId: parseInt(targetId) })
-                            });
-                            if (res.ok) {
-                                showNotification(isCancel ? 'Request cancelled' : 'Friend removed', 'success');
-                                
-                                // After successful removal, refresh the list based on context
-                                if(currentQuery) performSearch(currentQuery, container);
-                                else loadFriendsAndRequests(container);
-
-                            } else {
-                                showNotification('Failed to process removal.', 'error');
-                            }
-                        } catch(err) { console.error(err); }
-                     });
-                });
-
-                // 3. Message Friend
-                container.querySelectorAll('.js-message-friend').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        closeModal();
-                        const item = btn.closest('.friend-list-item');
-                        const payload = {
-                            id: btn.dataset.id,
-                            name: item.querySelector('.friend-name').textContent,
-                            avatar: item.querySelector('.friend-avatar').src
-                        };
-                        if (window.handleNavigation) {
-                            window.handleNavigation('messages');
-                            setTimeout(() => {
-                                if (App.startChatWithUser) App.startChatWithUser(payload);
-                            }, 150);
-                        }
-                    });
-                });
-            }
-
-        } catch (e) { console.error("Error opening modal:", e); }
+            searchListenerAttached = true;
+        }
     };
+
 })(window.App);

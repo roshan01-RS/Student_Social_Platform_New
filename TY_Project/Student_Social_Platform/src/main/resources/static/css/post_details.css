@@ -93,7 +93,6 @@
     object-fit: cover;
 }
 
-/* This selects the Username/Author Name */
 .pd-original-info h4,
 .pd-original-name {
     font-weight: 700;
@@ -149,14 +148,18 @@
     padding-left: 0.5rem; 
 }
 
+/* Comment Wrapper */
+.comment-wrapper {
+    margin-bottom: 1.2rem;
+}
+
 /* Comment Item */
 .comment-item {
     display: flex;
     gap: 1.2rem;
-    padding: 1.2rem 0;
-    border-bottom: 1px solid #f3f4f6;
+    padding: 0;
+    align-items: flex-start;
 }
-.comment-item:last-child { border-bottom: none; }
 
 .comment-avatar {
     width: 3.6rem;
@@ -165,9 +168,16 @@
     flex-shrink: 0;
     object-fit: cover;
 }
+
+/* Comment Body (The Bubble) */
 .comment-body {
     flex-grow: 1;
+    background-color: #ffffff; /* Light Mode Bubble */
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
+
 .comment-header-row {
     display: flex;
     justify-content: space-between;
@@ -188,22 +198,22 @@
     font-size: 1.4rem;
     color: var(--text-primary);
     line-height: 1.4;
+    margin-bottom: 0.5rem;
 }
 .comment-actions {
     display: flex;
     gap: 1.5rem;
-    margin-top: 0.6rem;
+    margin-top: 0.4rem;
 }
 .c-action-btn {
     background: none;
     border: none;
     color: #6b7280;
-    font-size: 1.2rem;
-    font-weight: 500;
+    font-size: 1.1rem;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 0.4rem;
     padding: 0;
     transition: color 0.2s;
 }
@@ -211,12 +221,31 @@
     color: var(--royal-blue);
 }
 
-/* Nested Replies */
+/* Toggle Thread Button */
+.view-replies-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.6rem;
+    padding-left: 0;
+    margin-left: 4.8rem; /* Aligned with reply list */
+}
+.view-replies-btn:hover {
+    color: var(--royal-blue);
+}
+
+/* Nested Replies Container (The Thread Line) */
 .replies-list {
     margin-left: 4.8rem;
-    border-left: 2px solid #e5e7eb;
+    border-left: 2px solid #e5e7eb; /* The Thread Line Color */
     padding-left: 1.2rem;
-    margin-top: 0.5rem;
+    margin-top: 0.8rem;
 }
 
 /* Footer Input */
@@ -279,15 +308,15 @@
    DARK MODE OVERRIDES (FIXED VISIBILITY)
    ========================================= */
 body.dark-mode .pd-container {
-    background-color: #000000; /* Global background */
-    color: #f8fafc; /* Default Marble White text */
+    background-color: #000000;
+    color: #f8fafc;
 }
 body.dark-mode .pd-header {
     background-color: #000000;
     border-bottom-color: #2d2d30;
 }
 body.dark-mode .btn-back {
-    color: #f8fafc; /* Marble White */
+    color: #f8fafc;
 }
 body.dark-mode .btn-back:hover {
     color: var(--royal-blue-light);
@@ -313,15 +342,21 @@ body.dark-mode .pd-original-text,
 body.dark-mode .comment-author,
 body.dark-mode .comment-text,
 body.dark-mode .comments-header-text { 
-    color: #f8fafc !important; /* Marble White */
+    color: #f8fafc !important;
 }
 
-/* Secondary Text (Slightly Dimmer Marble) */
+/* Comment Bubbles in Dark Mode */
+body.dark-mode .comment-body {
+    background-color: #1f1f22; /* Dark bubble background */
+    box-shadow: none;
+    border: 1px solid #2d2d30;
+}
+
+/* Secondary Text */
 body.dark-mode .pd-original-major,
 body.dark-mode .pd-original-stats,
 body.dark-mode .comment-time {
     color: #d1d5db !important; 
-    border-top-color: #2d2d30;
 }
 
 body.dark-mode .pd-original-image {
@@ -332,12 +367,9 @@ body.dark-mode .pd-original-stats {
     border-top-color: #2d2d30;
 }
 
-body.dark-mode .comment-item {
-    border-bottom-color: #2d2d30;
-}
-
+/* Fix Thread Line color in Dark Mode */
 body.dark-mode .replies-list {
-    border-left-color: #2d2d30;
+    border-left-color: #2d2d30 !important;
 }
 
 /* Footer in Dark Mode */
@@ -355,22 +387,17 @@ body.dark-mode .pd-input-wrapper:focus-within {
 }
 
 body.dark-mode #pd-reply-input {
-    color: #f8fafc; /* Marble White */
+    color: #f8fafc;
 }
 body.dark-mode #pd-reply-input::placeholder {
     color: #6b7280;
 }
 
-/* Action Buttons in Dark Mode */
-body.dark-mode .c-action-btn {
+body.dark-mode .c-action-btn,
+body.dark-mode .view-replies-btn {
     color: #9ca3af;
 }
-body.dark-mode .c-action-btn:hover {
+body.dark-mode .c-action-btn:hover,
+body.dark-mode .view-replies-btn:hover {
     color: var(--royal-blue-light);
-}
-body.dark-mode #pd-reply-btn {
-    color: var(--royal-blue-light);
-}
-body.dark-mode #pd-reply-btn:disabled {
-    color: #4b5563;
 }

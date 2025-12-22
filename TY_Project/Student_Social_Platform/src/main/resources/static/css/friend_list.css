@@ -3,6 +3,12 @@
 .friend-search-wrapper {
     position: relative;
     margin-bottom: 1.5rem;
+    /* FIX: Make sticky/fixed to ensure it stays visible */
+    position: sticky;
+    top: 0;
+    z-index: 20; /* High z-index to stay above list items */
+    background-color: inherit; /* Matches the card background to cover scrolling items */
+    padding-top: 10px; /* Spacing protection */
 }
 
 /* FIXED: Constrain the SVG icon size */
@@ -35,12 +41,43 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    /* FIXED: Increased height */
-    max-height: 600px; 
+    /* FIXED: Viewport height constraint ensures only this list scrolls */
+    height: 55vh; 
+    max-height: 55vh;
     min-height: 300px;
     overflow-y: auto;
+    
+    /* Scrollbar behavior: smooth scrolling */
+    scroll-behavior: smooth;
+    /* Ensure padding for scrollbar doesn't overlap content */
+    padding-right: 4px; 
 }
 
+/* --- TRANSPARENT HOVER SCROLLBAR --- */
+
+.friend-list::-webkit-scrollbar {
+    width: 6px; /* Slim width */
+    background-color: transparent; /* Track is transparent */
+}
+
+.friend-list::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+.friend-list::-webkit-scrollbar-thumb {
+    background-color: transparent; /* Invisible by default */
+    border-radius: 10px;
+}
+
+/* Show scrollbar thumb ONLY when hovering over the list */
+.friend-list:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5); /* Visible gray on hover */
+}
+
+/* Dark mode scrollbar hover color */
+body.dark-mode .friend-list:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+}
 
 
 .friend-list-item {
@@ -187,7 +224,7 @@ body.dark-mode .btn-unfriend:hover {
 
 /* Light-mode / modal content overrides
    (only the necessary changes so modal looks white in light mode
-    and transitions between friend/unfriend/message are smooth) */
+   and transitions between friend/unfriend/message are smooth) */
 body:not(.dark-mode) .card {
     background-color: #ffffff;
     color: #0f172a;

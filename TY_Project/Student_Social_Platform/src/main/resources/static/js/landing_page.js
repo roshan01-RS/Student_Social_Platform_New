@@ -28,8 +28,8 @@ function initializeLandingPage() {
     // =========================================
     // 1. GLOBAL CONFIG & STATE
     // =========================================
-    const API_BASE = 'http://localhost:8000';
-    const SCHOOL_API_URL = 'http://universities.hipolabs.com/search?'; 
+   const API_BASE = '';
+    const SCHOOL_API_URL = 'https://universities.hipolabs.com/search?'; 
     
     const ENDPOINTS = {
         LOGIN: `${API_BASE}/api/login`,
