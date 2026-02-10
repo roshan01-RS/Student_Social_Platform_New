@@ -13,7 +13,7 @@ import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.socket.WebSocketHandler;
 
-import java.net.URI;
+
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;

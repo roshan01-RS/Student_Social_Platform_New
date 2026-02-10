@@ -1,9 +1,15 @@
-// CommunityPanel.js - Integrated with Backend (Real Data)
+// CommunityPanel.js - Integrated with Backend (Real Data) + Robust Realtime
 (function(App) {
 
     const API_BASE = 'http://localhost:8000';
     let currentUser = null;
     let imageFileToUpload = null;
+
+    // 🔥 WEBSOCKET & RACE CONDITION STATE (Synced)
+    let stompClient = null;
+    let wsConnected = false;
+    let subscribedCommunityId = null;
+    let lastFetchToken = 0; // Guard against race conditions during switching
 
     // --- Helper: Fetch HTML & Clean it ---
     async function loadHtml(url) {
@@ -93,11 +99,80 @@
         try { currentUser = await App.fetchData('/api/my-profile'); } catch(e){}
     }
 
+    // 🔥 WEBSOCKET SETUP (Synced)
+    function connectWS() {
+        if (wsConnected) return;
+
+        // Check if SockJS and Stomp are available
+        if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+            console.warn('SockJS or Stomp is not defined. Realtime features disabled.');
+            return;
+        }
+
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+            wsConnected = true;
+            // Resubscribe if a community was selected
+            if(selectedCommunity) subscribeCommunity(selectedCommunity.id);
+        });
+    }
+
+    function subscribeCommunity(communityId) {
+        if (!stompClient || !wsConnected) return;
+        
+        // Prevent duplicate subscription to same ID
+        if (subscribedCommunityId === communityId) return;
+        subscribedCommunityId = communityId;
+
+        stompClient.subscribe(`/topic/community/${communityId}`, msg => {
+            let evt;
+            try { evt = JSON.parse(msg.body); } catch { return; }
+
+            // Guard: Only process updates for the *currently viewed* community
+            if (!selectedCommunity || String(selectedCommunity.id) !== String(communityId)) return;
+
+            if (evt.type === 'POST_LIKED') {
+                const post = selectedCommunity.posts.find(p => p.id === evt.postId);
+                if (post) {
+                    post.likes = evt.likeCount;
+                    // Efficiently update DOM without full re-render
+                    const likeBtn = document.querySelector(`.js-like-btn[data-post-id="${post.id}"] .like-count`);
+                    if(likeBtn) likeBtn.textContent = post.likes;
+                    
+                    // Update heart color locally if needed (though backend tracks state, 
+                    // realtime event doesn't typically send 'isLiked' for specific user unless custom payload)
+                }
+            }
+
+            if (evt.type === 'POST_REPLIED') {
+                const post = selectedCommunity.posts.find(p => p.id === evt.postId);
+                if (post) {
+                    post.comments = evt.commentCount;
+                    // Efficiently update DOM
+                    const commentBtn = document.querySelector(`.js-reply-btn[data-post-id="${post.id}"] .comment-count`);
+                    if(commentBtn) commentBtn.textContent = post.comments;
+                }
+            }
+
+            if (evt.type === 'NEW_POST' || evt.type === 'POST_CREATED') {
+                 // Re-fetch to ensure order and consistency (safest approach)
+                 const feedContainer = document.getElementById('community-feed-window');
+                 if(feedContainer) fetchCommunityMessages(feedContainer, lastFetchToken);
+            }
+        });
+    }
+
     // --- Main Render Function ---
     App.renderCommunity = async (panel) => {
         mainPanelRef = panel;
         await fetchCurrentUser();
         
+        // 🔥 Connect Socket
+        connectWS();
+
         panel.innerHTML = COMMUNITY_LAYOUT_HTML;
         
         // Initial Fetch
@@ -165,16 +240,27 @@
         listContainer.querySelectorAll('.community-item-button').forEach(btn => {
             btn.addEventListener('click', () => {
                 const commId = btn.dataset.commId;
+                
+                // 🔥 Race Condition Guard: Increment Token
+                const currentToken = ++lastFetchToken;
+
                 selectedCommunity = myCommunities.find(c => c.id === commId);
+                
+                // Subscribe immediately on selection
+                subscribeCommunity(selectedCommunity.id);
+                
                 renderCommunityList(panel, filter); 
-                renderCommunityFeed(panel);
+                renderCommunityFeed(panel, currentToken);
             });
         });
     }
 
-    async function renderCommunityFeed(panel) {
+    async function renderCommunityFeed(panel, token) {
         const feedContainer = panel.querySelector('#community-feed-window');
         if (!feedContainer) return;
+        
+        // 🔥 Race Condition Check
+        if (token && token !== lastFetchToken) return;
 
         if (!selectedCommunity) {
             feedContainer.innerHTML = `
@@ -218,7 +304,7 @@
                         const res = await fetch(`${API_BASE}/api/communities/${selectedCommunity.id}/join`, { method: 'POST', credentials: 'include' });
                         if(res.ok) {
                             selectedCommunity.joined = true;
-                            renderCommunityFeed(panel);
+                            renderCommunityFeed(panel, lastFetchToken);
                         }
                      } catch(e) {}
                  });
@@ -286,7 +372,7 @@
             ${inputHtml}
         `;
 
-        await fetchCommunityMessages(feedContainer);
+        await fetchCommunityMessages(feedContainer, token);
         
         if (isAdmin) attachCommunityListeners(feedContainer);
 
@@ -340,10 +426,18 @@
         });
     }
 
-    async function fetchCommunityMessages(container) {
+    async function fetchCommunityMessages(container, token) {
         if (!selectedCommunity) return;
+        
+        // 🔥 Race Condition Check inside async fetch
+        if (token && token !== lastFetchToken) return;
+
         try {
             const res = await App.fetchData(`/api/communities/${selectedCommunity.id}/messages`);
+            
+            // 🔥 Double check after await
+            if (token && token !== lastFetchToken) return;
+
             if (Array.isArray(res)) {
                 // Transform messages to post format
                 selectedCommunity.posts = res.map(m => {
@@ -427,6 +521,7 @@
                 const post = selectedCommunity.posts.find(p => p.id === postId);
                 if (!post) return;
 
+                // Optimistic Update
                 post.isLiked = !post.isLiked;
                 post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
                 
@@ -495,7 +590,7 @@
                                      } else {
                                          if (communityView) communityView.style.display = 'flex';
                                      }
-                                     renderCommunityFeed(mainPanelRef); 
+                                     renderCommunityFeed(mainPanelRef, lastFetchToken); 
                                  });
                              }
                          }, 100);
@@ -554,7 +649,7 @@
                     if (res.ok) {
                         input.value = '';
                         clearPreview();
-                        fetchCommunityMessages(container);
+                        fetchCommunityMessages(container, lastFetchToken);
                     } else {
                         showNotification("Failed to post message", "error");
                     }

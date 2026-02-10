@@ -1,9 +1,14 @@
-// postFeed.js - Fully Integrated with Backend & External Templates
-// Handles Feed fetching, Post Creation (Text+Image), and Liking
+// postFeed.js - Fully Integrated with Backend & External Templates + Realtime Auto-Paste
+// Handles Feed fetching, Post Creation (Text+Image), Liking, and Realtime Updates
 (function(App) {
     
     const API_BASE = '';
     let currentUserId = null;
+
+    // 🔥 WEBSOCKET & STATE (Synced)
+    let feedMap = new Map();
+    let stompClient = null;
+    let wsConnected = false;
 
     // --- 1. Templates & Helpers ---
     
@@ -44,9 +49,6 @@
     }
 
     // Updated Post Card HTML with FULL IMAGE VISIBILITY (Contain)
-    // - Changed background to black to frame images nicely
-    // - Used object-fit: contain to ensure full image is visible without cropping
-    // - Fixed height to 400px as requested for uniform look
     const POST_CARD_HTML = `
         <div class="post-card">
             <div class="post-header">
@@ -68,7 +70,6 @@
 
             <p class="post-content"></p>
             
-            <!-- Fixed: Fixed height container with object-fit: contain for full visibility -->
             <div class="post-image-container" style="width: 100%; height: 400px; border-radius: 8px; margin-top: 10px; display: none; background: #000; overflow: hidden;">
                 <img src="" alt="Post content" class="post-image" style="width: 100%; height: 100%; object-fit: contain; display: block; cursor: pointer;"/>
             </div>
@@ -126,6 +127,83 @@
         };
     }
 
+    // 🔥 REALTIME FEED SOCKET (Synced)
+    function connectFeedSocket() {
+        if (wsConnected) return;
+
+        if (!window.SockJS || !window.Stomp) {
+            console.warn('SockJS/Stomp missing. Realtime feed disabled.');
+            return;
+        }
+
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+            wsConnected = true;
+            stompClient.subscribe('/topic/feed', msg => {
+                try {
+                    const evt = JSON.parse(msg.body);
+                    
+                    // 🔥 Handle Comment Count Update (New Feature)
+                    if (evt.type === 'COMMENT_ADDED') {
+                        const postId = evt.postId || evt.post?.id;
+                        const count = evt.commentCount ?? evt.post?.commentCount;
+                        if (postId && count != null) {
+                            updateCommentCount(postId, count);
+                        }
+                        return;
+                    }
+
+                    // Existing Post Events
+                    if (!evt.post) return;
+                    applyFeedEvent(evt);
+                } catch (e) { console.error('WS Error', e); }
+            });
+        });
+    }
+
+    // 🔥 Helper to update comment count in DOM and State
+    function updateCommentCount(postId, count) {
+        if (feedMap.has(postId)) {
+            const p = feedMap.get(postId);
+            p.comments = count;
+        }
+        const el = document.querySelector(`.post-card[data-post-id="${postId}"] .post-comments-count`);
+        if (el) el.textContent = count;
+    }
+
+    async function applyFeedEvent(evt) {
+        // Map the raw event post to frontend structure
+        const myId = currentUserId || await getCurrentUserId();
+        const p = mapBackendPostToFrontend(evt.post, myId);
+
+        if (evt.type === 'POST_CREATED') {
+            // Avoid duplicate if already present
+            if (feedMap.has(p.id)) return;
+            feedMap.set(p.id, p);
+            
+            // Auto Paste: Render and Prepend to feed
+            const wrapper = document.querySelector('.post-feed-wrapper');
+            if (wrapper) {
+                const card = createPostElement(p, myId);
+                wrapper.prepend(card);
+            }
+        }
+
+        if (evt.type === 'POST_LIKED') {
+            // Update map
+            if (feedMap.has(p.id)) {
+                const existing = feedMap.get(p.id);
+                existing.likes = p.likes; // Update count
+            }
+            // Update DOM directly
+            const countEl = document.querySelector(`.post-card[data-post-id="${p.id}"] .post-likes-count`);
+            if (countEl) countEl.textContent = p.likes;
+        }
+    }
+
     // --- 2. Create Post Modal Logic ---
     async function openCreatePostModal() {
         const container = document.getElementById('create-post-modal-container');
@@ -138,7 +216,6 @@
         }
         container.innerHTML = modalHtml;
 
-        // Populate User Info
         try {
             const profile = await App.fetchData('/api/my-profile');
             if (profile) {
@@ -194,7 +271,7 @@
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     previewImage.src = evt.target.result;
-                    previewContainer.style.display = 'flex'; // Use flex for centering logic in CSS
+                    previewContainer.style.display = 'flex'; 
                     validate();
                 }
                 reader.readAsDataURL(selectedFile);
@@ -209,7 +286,6 @@
             validate();
         });
 
-        // --- SUBMIT POST ---
         if (submitBtn) submitBtn.addEventListener('click', async () => {
             const content = textarea.value;
             const formData = new FormData();
@@ -230,9 +306,8 @@
 
                 if (res.ok) {
                     closeModal();
-                    // Refresh Feed
-                    const contentPanel = document.querySelector('#view-home .content-panel');
-                    if(contentPanel) await App.renderHome(contentPanel);
+                    // NOTE: WebSocket will handle the update via applyFeedEvent
+                    // No manual refresh needed for the current user
                 } else {
                     const err = await res.json();
                     alert("Error creating post: " + (err.error || 'Unknown error'));
@@ -248,6 +323,135 @@
         });
     }
 
+    // --- Helper to create Post Element (Extracted for re-use in WS) ---
+    function createPostElement(post, myId) {
+        const postCard = getPostCardTemplate();
+        postCard.dataset.postId = post.id;
+
+        const avatar = postCard.querySelector('.post-author-avatar');
+        if(avatar) avatar.src = post.author.avatar;
+        
+        const name = postCard.querySelector('.post-author-name');
+        if(name) name.textContent = post.author.name;
+        
+        const meta = postCard.querySelector('.post-author-meta');
+        if(meta) meta.textContent = `${post.author.major} · ${post.timestamp}`;
+        
+        const content = postCard.querySelector('.post-content');
+        if(content) content.textContent = post.content;
+        
+        const postImageContainer = postCard.querySelector('.post-image-container');
+        const postImage = postCard.querySelector('.post-image');
+        
+        if (postImage) {
+            if (post.image) {
+                postImage.src = post.image;
+                postImageContainer.style.display = 'block';
+            } else {
+                postImageContainer.style.display = 'none';
+            }
+        }
+        
+        const likesCount = postCard.querySelector('.post-likes-count');
+        if(likesCount) likesCount.textContent = post.likes;
+        
+        const commentsCount = postCard.querySelector('.post-comments-count');
+        if(commentsCount) commentsCount.textContent = post.comments;
+
+        // Like Logic
+        const likeBtn = postCard.querySelector('.like-btn');
+        if(likeBtn) {
+            if (post.isLiked) likeBtn.classList.add('liked');
+            
+            likeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                post.isLiked = !post.isLiked;
+                post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
+                
+                if (post.isLiked) likeBtn.classList.add('liked');
+                else likeBtn.classList.remove('liked');
+                likesCount.textContent = post.likes;
+
+                try {
+                    const likeRes = await fetch(`${API_BASE}/api/posts/${post.id}/like`, {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    if (!likeRes.ok) {
+                        // Revert
+                        post.isLiked = !post.isLiked;
+                        post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
+                        if (post.isLiked) likeBtn.classList.add('liked'); else likeBtn.classList.remove('liked');
+                        likesCount.textContent = post.likes;
+                    }
+                } catch(err) { console.error("Like failed", err); }
+            });
+        }
+        
+        const commentBtn = postCard.querySelector('.comment-btn');
+        const cardBody = postCard.querySelector('.post-content');
+        
+        const openDetails = () => {
+            document.getElementById('view-home').style.display = 'none';
+            const detailsView = document.getElementById('view-post-details');
+            detailsView.style.display = 'flex'; 
+            const detailsPanel = detailsView.querySelector('.content-panel');
+            
+            if(window.handleNavigation) window.handleNavigation('post-details');
+            
+            if(window.App.openPostDetails) {
+                 window.App.openPostDetails(detailsPanel, post);
+            }
+        };
+
+        if(commentBtn) commentBtn.addEventListener('click', (e) => { e.stopPropagation(); openDetails(); });
+        if(cardBody) cardBody.addEventListener('click', openDetails);
+        
+        if(postImage) {
+            postImage.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (post.image) {
+                    window.open(post.image, '_blank');
+                }
+            });
+        }
+
+        const bookmarkBtn = postCard.querySelector('.bookmark-btn');
+        if(bookmarkBtn) bookmarkBtn.addEventListener('click', (e) => { e.stopPropagation(); bookmarkBtn.classList.toggle('bookmarked'); });
+
+        // Menu / Delete
+        const menuBtn = postCard.querySelector('.post-menu-btn');
+        const dropdown = postCard.querySelector('.dropdown-menu');
+        const deleteBtn = postCard.querySelector('.delete-post-btn');
+
+        if (String(post.author.id) === String(myId)) {
+            if (deleteBtn) {
+                deleteBtn.style.display = 'block';
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    if(!confirm("Delete this post?")) return;
+                    try {
+                        const delRes = await fetch(`${API_BASE}/api/posts/${post.id}`, { method: 'DELETE', credentials:'include' });
+                        if (delRes.ok) {
+                            postCard.remove();
+                            feedMap.delete(post.id);
+                        }
+                    } catch(err) { console.error(err); }
+                });
+            }
+        }
+
+        if(menuBtn && dropdown) {
+            menuBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                document.querySelectorAll('.dropdown-menu.show').forEach(d => { if (d !== dropdown) d.classList.remove('show'); });
+                dropdown.classList.toggle('show');
+            });
+        }
+        
+        return postCard;
+    }
+
     // --- 3. Main Render Function (Feed) ---
     App.renderHome = async (panel) => {
         panel.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">Loading feed...</div>';
@@ -258,9 +462,15 @@
             return;
         }
 
+        // 🔥 Connect Socket for updates
+        connectFeedSocket();
+
         try {
             const res = await App.fetchData('/api/posts/feed');
             panel.innerHTML = ''; 
+            
+            // Clear map on refresh
+            feedMap.clear();
 
             if (!res || res.length === 0) {
                 panel.innerHTML = '<p class="text-secondary" style="text-align:center; padding: 2rem;">No posts yet. Be the first to share something!</p>';
@@ -273,136 +483,9 @@
 
             res.forEach(rawPost => {
                 const post = mapBackendPostToFrontend(rawPost, myId);
-                const postCard = getPostCardTemplate();
-                postCard.dataset.postId = post.id;
-
-                // Populate Data
-                const avatar = postCard.querySelector('.post-author-avatar');
-                if(avatar) avatar.src = post.author.avatar;
-                
-                const name = postCard.querySelector('.post-author-name');
-                if(name) name.textContent = post.author.name;
-                
-                const meta = postCard.querySelector('.post-author-meta');
-                if(meta) meta.textContent = `${post.author.major} · ${post.timestamp}`;
-                
-                const content = postCard.querySelector('.post-content');
-                if(content) content.textContent = post.content;
-                
-                // Image Handling
-                const postImageContainer = postCard.querySelector('.post-image-container');
-                const postImage = postCard.querySelector('.post-image');
-                
-                if (postImage) {
-                    if (post.image) {
-                        postImage.src = post.image;
-                        postImageContainer.style.display = 'block';
-                    } else {
-                        postImageContainer.style.display = 'none';
-                    }
-                }
-                
-                const likesCount = postCard.querySelector('.post-likes-count');
-                if(likesCount) likesCount.textContent = post.likes;
-                
-                const commentsCount = postCard.querySelector('.post-comments-count');
-                if(commentsCount) commentsCount.textContent = post.comments;
-
-                // Like Logic
-                const likeBtn = postCard.querySelector('.like-btn');
-                if(likeBtn) {
-                    if (post.isLiked) likeBtn.classList.add('liked');
-                    
-                    likeBtn.addEventListener('click', async (e) => {
-                        e.stopPropagation();
-                        // Optimistic Update
-                        post.isLiked = !post.isLiked;
-                        post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
-                        
-                        if (post.isLiked) likeBtn.classList.add('liked');
-                        else likeBtn.classList.remove('liked');
-                        likesCount.textContent = post.likes;
-
-                        try {
-                            const likeRes = await fetch(`${API_BASE}/api/posts/${post.id}/like`, {
-                                method: 'POST',
-                                credentials: 'include'
-                            });
-                            if (!likeRes.ok) {
-                                // Revert
-                                post.isLiked = !post.isLiked;
-                                post.likes = post.isLiked ? post.likes + 1 : post.likes - 1;
-                                if (post.isLiked) likeBtn.classList.add('liked'); else likeBtn.classList.remove('liked');
-                                likesCount.textContent = post.likes;
-                            }
-                        } catch(err) { console.error("Like failed", err); }
-                    });
-                }
-                
-                // Comment/Details Logic
-                const commentBtn = postCard.querySelector('.comment-btn');
-                const cardBody = postCard.querySelector('.post-content');
-                
-                const openDetails = () => {
-                    document.getElementById('view-home').style.display = 'none';
-                    const detailsView = document.getElementById('view-post-details');
-                    detailsView.style.display = 'flex'; 
-                    const detailsPanel = detailsView.querySelector('.content-panel');
-                    
-                    if(window.handleNavigation) window.handleNavigation('post-details');
-                    
-                    if(window.App.openPostDetails) {
-                         window.App.openPostDetails(detailsPanel, post);
-                    }
-                };
-
-                if(commentBtn) commentBtn.addEventListener('click', (e) => { e.stopPropagation(); openDetails(); });
-                if(cardBody) cardBody.addEventListener('click', openDetails);
-                
-                // CHANGED: Open image in new tab when clicked
-                if(postImage) {
-                    postImage.addEventListener('click', (e) => {
-                        e.stopPropagation(); // prevent opening details
-                        if (post.image) {
-                            window.open(post.image, '_blank');
-                        }
-                    });
-                }
-
-                // Bookmark
-                const bookmarkBtn = postCard.querySelector('.bookmark-btn');
-                if(bookmarkBtn) bookmarkBtn.addEventListener('click', (e) => { e.stopPropagation(); bookmarkBtn.classList.toggle('bookmarked'); });
-
-                // Menu / Delete
-                const menuBtn = postCard.querySelector('.post-menu-btn');
-                const dropdown = postCard.querySelector('.dropdown-menu');
-                const deleteBtn = postCard.querySelector('.delete-post-btn');
-
-                if (String(post.author.id) === String(myId)) {
-                    if (deleteBtn) {
-                        deleteBtn.style.display = 'block';
-                        deleteBtn.addEventListener('click', async (e) => {
-                            e.preventDefault();
-                            if(!confirm("Delete this post?")) return;
-                            try {
-                                const delRes = await fetch(`${API_BASE}/api/posts/${post.id}`, { method: 'DELETE', credentials:'include' });
-                                if (delRes.ok) {
-                                    postCard.remove();
-                                }
-                            } catch(err) { console.error(err); }
-                        });
-                    }
-                }
-
-                if(menuBtn && dropdown) {
-                    menuBtn.addEventListener('click', (e) => {
-                        e.stopPropagation(); 
-                        document.querySelectorAll('.dropdown-menu.show').forEach(d => { if (d !== dropdown) d.classList.remove('show'); });
-                        dropdown.classList.toggle('show');
-                    });
-                }
-
-                feedWrapper.appendChild(postCard);
+                feedMap.set(post.id, post); // Track initial posts
+                const card = createPostElement(post, myId);
+                feedWrapper.appendChild(card);
             });
 
             panel.appendChild(feedWrapper);

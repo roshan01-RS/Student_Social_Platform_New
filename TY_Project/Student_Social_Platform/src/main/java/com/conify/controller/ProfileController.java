@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.dao.DataAccessResourceFailureException;
+
 
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;

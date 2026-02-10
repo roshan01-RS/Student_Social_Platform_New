@@ -1,4 +1,4 @@
-// PostDetails.js - Robust Threaded Comments (No Polling)
+// PostDetails.js - Robust Threaded Comments (No Polling) + Realtime Socket
 (function(App) {
 
     const API_BASE = '';
@@ -6,6 +6,10 @@
     
     // Global state to track expanded threads
     const expandedThreads = new Set();
+
+    // 🔥 WEBSOCKET STATE (Synced from New Code)
+    let stompClient = null;
+    let connected = false;
 
     // --- Template Helper ---
     async function getDetailsTemplate() {
@@ -45,6 +49,83 @@
         if (diff < 3600) return `${Math.floor(diff/60)}m`;
         if (diff < 86400) return `${Math.floor(diff/3600)}h`;
         return date.toLocaleDateString();
+    }
+
+    // 🔥 WEBSOCKET LOGIC (Synced from New Code)
+    function connectWS(postId) {
+        // Reset connection if switching posts
+        if (stompClient && stompClient.connected) {
+            try { stompClient.disconnect(); } catch (e) {}
+            connected = false;
+        }
+
+        if (!window.SockJS || !window.Stomp) return;
+
+        const socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = () => {};
+
+        stompClient.connect({}, () => {
+            connected = true;
+            stompClient.subscribe(`/topic/post/${postId}`, msg => {
+                let evt;
+                try { evt = JSON.parse(msg.body); } catch { return; }
+
+                if (evt.type === 'COMMENT_ADDED') {
+                    updateCommentCount(evt.commentCount);
+                    // 🔥 Inject comment immediately without reload
+                    insertRealtimeComment(evt); 
+                }
+            });
+        });
+    }
+
+    function updateCommentCount(count) {
+        // Updates the stat in the DOM if it exists
+        const el = document.querySelector('.pd-original-stats span:last-child');
+        if (el) el.textContent = `${count} Comments`;
+    }
+
+    // 🔥 NEW: Insert comment dynamically (Synced Feature)
+    function insertRealtimeComment(evt) {
+        const comment = evt.comment; 
+        if (!comment) return;
+
+        // 1. Root Comment
+        if (!evt.parentCommentId) {
+            const list = document.getElementById('pd-comments-list');
+            if (list) {
+                // If it was empty/loading, clear it first
+                if (list.innerHTML.includes('No comments') || list.innerHTML.includes('Loading')) {
+                    list.innerHTML = '';
+                }
+                list.insertAdjacentHTML('afterbegin', buildCommentHTML(comment));
+            }
+            return;
+        }
+
+        // 2. Reply
+        const containerId = `replies-${evt.parentCommentId}`;
+        const container = document.getElementById(containerId);
+        const toggleBtn = document.getElementById(`btn-${containerId}`);
+
+        if (container && toggleBtn) {
+            // Ensure container is visible and button is updated
+            toggleBtn.style.display = 'flex';
+            expandedThreads.add(containerId);
+            container.style.display = 'block';
+
+            // Update button text
+            const count = container.children.length + 1; // Approximate count update
+            const btnTextSpan = toggleBtn.querySelector('.btn-text');
+            if(btnTextSpan) btnTextSpan.textContent = 'Hide replies';
+
+            // Rotate icon
+            const icon = toggleBtn.querySelector('svg');
+            if(icon) icon.style.transform = 'rotate(180deg)';
+
+            container.insertAdjacentHTML('beforeend', buildCommentHTML(comment, true));
+        }
     }
 
     // --- HTML Generators ---
@@ -95,6 +176,9 @@
 
     // --- Main Logic ---
     App.openPostDetails = async (panel, postData) => {
+        // 🔥 Connect Socket
+        connectWS(postData.id);
+
         const template = await getDetailsTemplate();
         if (!template) {
             panel.innerHTML = '<div style="padding:20px; color:red;">Failed to load template.</div>';
@@ -254,7 +338,8 @@
                     input.placeholder = "Post your reply..."; 
                     replyToId = null;
                     replyBtn.textContent = 'Reply';
-                    await loadComments();
+                    // Optional: await loadComments(); 
+                    // We don't necessarily need to reload if WebSocket handles the insertion
                 } else {
                     alert("Failed to post comment");
                     replyBtn.textContent = 'Reply';

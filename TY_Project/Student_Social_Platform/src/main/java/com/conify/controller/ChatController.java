@@ -1,4 +1,3 @@
-// ChatController.java
 package com.conify.controller;
 
 import com.conify.model.mongo.ChatMessage;
@@ -58,7 +57,9 @@ public class ChatController {
     @Autowired private ConversationRepository conversationRepository;
     @Autowired private UserProfileRepository userProfileRepository;
 
-    // --- WebSocket: Send Message ---
+    // =========================
+    // 🔥 WebSocket: Send Message (WITH REPLY SUPPORT)
+    // =========================
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessage chatMessage, Principal principal) {
         try {
@@ -70,19 +71,33 @@ public class ChatController {
             String conversationId = minId + "_" + maxId;
             chatMessage.setConversationId(conversationId);
 
+            // 🔥 REPLY SAFETY: normalize empty values
+            if (chatMessage.getReplyToMessageId() == null ||
+                chatMessage.getReplyToMessageId().isBlank()) {
+                chatMessage.setReplyToMessageId(null);
+                chatMessage.setReplyToContent(null);
+                chatMessage.setReplyToSenderId(null);
+            }
+
             ChatMessage savedMsg = chatMessageRepository.save(chatMessage);
 
-            updateConversation(conversationId, savedMsg.getSenderId(), savedMsg.getRecipientId(),
-                    savedMsg.getContent(), savedMsg.getTimestamp(), savedMsg.getId());
+            updateConversation(
+                    conversationId,
+                    savedMsg.getSenderId(),
+                    savedMsg.getRecipientId(),
+                    savedMsg.getContent(),
+                    savedMsg.getTimestamp(),
+                    savedMsg.getId()
+            );
 
             messagingTemplate.convertAndSendToUser(
-                    String.valueOf(chatMessage.getRecipientId()),
+                    String.valueOf(savedMsg.getRecipientId()),
                     "/queue/messages",
                     savedMsg
             );
 
             messagingTemplate.convertAndSendToUser(
-                    String.valueOf(chatMessage.getSenderId()),
+                    String.valueOf(savedMsg.getSenderId()),
                     "/queue/messages",
                     savedMsg
             );
@@ -120,16 +135,13 @@ public class ChatController {
                     dto.put("timestamp", Instant.EPOCH);
                 }
 
-                // ===== FIXED SECTION (ONLY CHANGE) =====
                 Integer unread = 0;
                 if (conv.getUnreadCounts() != null &&
                     conv.getUnreadCounts().get(String.valueOf(userId)) != null) {
                     unread = conv.getUnreadCounts().get(String.valueOf(userId));
                 }
                 dto.put("unread", unread);
-                // =====================================
 
-                dto.put("online", Math.random() > 0.5);
                 result.add(dto);
             }
         }
@@ -140,7 +152,6 @@ public class ChatController {
         return result;
     }
 
-    // --- Helper: Update Conversation ---
     private void updateConversation(String conversationId, Long senderId, Long recipientId,
                                     String content, Instant timestamp, String messageId) {
 
@@ -163,7 +174,7 @@ public class ChatController {
         conversationRepository.save(conv);
     }
 
-    // --- REST: Get Chat History (UNCHANGED) ---
+    // --- REST: Get Chat History ---
     public Map<String, Object> getChatHistory(Long senderId, Long recipientId) {
         long minId = Math.min(senderId, recipientId);
         long maxId = Math.max(senderId, recipientId);

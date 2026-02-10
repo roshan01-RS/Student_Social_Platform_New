@@ -5,14 +5,14 @@
 </div>
 
 <!-- Flex container allows header/footer to stay fixed while body scrolls -->
-<div class="amm-body" style="flex: 1; overflow-y: auto; max-height: 70vh; padding: 1.5rem;">
+<div class="amm-body">
     <!-- Added class modal-desc to replace inline style for Dark Mode support -->
-    <p class="modal-desc" style="margin-bottom: 1.5rem; font-size: 1.3rem;">
+    <p class="modal-desc">
         Upload your student ID card and fees receipt for verification.
     </p>
 
     <!-- Error Container -->
-    <div id="upload-error-msg" class="notification-box error" style="display:none; position:static; transform:none; width:100%; margin-bottom:1rem; opacity:1;"></div>
+    <div id="upload-error-msg" class="notification-box error"></div>
 
     <!-- ID Card Section -->
     <div class="upload-section">
@@ -30,13 +30,13 @@
                 <p class="upload-text-sub">PNG, JPG up to 5MB</p>
             </div>
             
-            <div class="upload-preview" id="id-card-preview-container" style="display: none;">
-                <div style="position: relative;">
-                    <img id="id-card-img" src="" alt="ID Card Preview" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px;">
+            <div class="upload-preview" id="id-card-preview-container">
+                <div class="upload-image-wrapper">
+                    <img id="id-card-img" src="" alt="ID Card Preview">
                 </div>
-                <div class="upload-file-info" style="margin-top: 0.5rem;">
+                <div class="upload-file-info">
                     <span id="id-card-name" class="file-name">filename.jpg</span>
-                    <button type="button" class="btn-remove-file" id="btn-remove-id-card" style="color: #ef4444; margin-left: auto;">Remove</button>
+                    <button type="button" class="btn-remove-file" id="btn-remove-id-card">Remove</button>
                 </div>
             </div>
             
@@ -60,13 +60,13 @@
                 <p class="upload-text-sub">PNG, JPG up to 5MB</p>
             </div>
             
-            <div class="upload-preview" id="fee-receipt-preview-container" style="display: none;">
-                <div style="position: relative;">
-                    <img id="fee-receipt-img" src="" alt="Receipt Preview" style="width: 100%; max-height: 200px; object-fit: contain; border-radius: 8px;">
+            <div class="upload-preview" id="fee-receipt-preview-container">
+                <div class="upload-image-wrapper">
+                    <img id="fee-receipt-img" src="" alt="Receipt Preview">
                 </div>
-                <div class="upload-file-info" style="margin-top: 0.5rem;">
+                <div class="upload-file-info">
                     <span id="fee-receipt-name" class="file-name">filename.jpg</span>
-                    <button type="button" class="btn-remove-file" id="btn-remove-fee-receipt" style="color: #ef4444; margin-left: auto;">Remove</button>
+                    <button type="button" class="btn-remove-file" id="btn-remove-fee-receipt">Remove</button>
                 </div>
             </div>
             
@@ -75,7 +75,7 @@
     </div>
 </div>
 
-<div class="amm-footer" style="flex-shrink: 0; padding: 1.5rem; background: white; border-top: 1px solid #f3f4f6; border-radius: 0 0 16px 16px;">
+<div class="amm-footer">
     <button class="btn-secondary js-close-upload-docs">Cancel</button>
     <button id="btn-submit-docs" class="btn-primary" disabled>Submit for Verification</button>
 </div>

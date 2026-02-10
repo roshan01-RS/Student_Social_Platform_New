@@ -2,7 +2,7 @@
 // Global namespace
 window.App = window.App || {};
 
-(function (App) {
+(function (App) { 
     // Resolve API base dynamically:
     const resolveApiBase = () => {
         try {
@@ -20,6 +20,117 @@ window.App = window.App || {};
     };
 
     const API_BASE = resolveApiBase();
+    
+    // 🔥 REALTIME PROFILE SOCKET (NEW – ISOLATED)
+    let profileStompClient = null;
+    let profileSocketConnected = false;
+
+    function connectProfileSocket() {
+        if (profileSocketConnected) return;
+        if (!window.SockJS || !window.Stomp) return;
+
+        const socket = new SockJS('/ws');
+        profileStompClient = Stomp.over(socket);
+        profileStompClient.debug = () => {};
+
+        profileStompClient.connect({}, () => {
+            profileSocketConnected = true;
+
+            profileStompClient.subscribe('/user/queue/profile', msg => {
+                try {
+                    const evt = JSON.parse(msg.body);
+                    applyProfileRealtimeUpdate(evt);
+                } catch (e) {
+                    console.warn('Invalid profile WS payload', e);
+                }
+            });
+        });
+    }
+
+    // 🔥 NEW: Cleanup function to prevent ghost connections
+    function disconnectProfileSocket() {
+        if (profileStompClient && profileSocketConnected) {
+            try { profileStompClient.disconnect(); } catch (e) { console.warn('Disconnect error', e); }
+        }
+        profileStompClient = null;
+        profileSocketConnected = false;
+    }
+
+    function applyProfileRealtimeUpdate(evt) {
+        // Handle direct payload or wrapped payload structure
+        const p = evt.payload || evt; 
+        if (!p) return;
+
+        // DOM elements might not exist if user navigated away -> Safe Guards added
+
+        // Avatar
+        if (p.avatarUrl) {
+            const img = document.getElementById('profile-avatar-img');
+            if (img) img.src = p.avatarUrl;
+        }
+
+        // Bio
+        if (typeof p.bio === 'string') {
+            const bio = document.querySelector('.profile-bio-text');
+            if (bio) bio.textContent = p.bio || 'Tell us about yourself...';
+        }
+
+        // Major
+        if (typeof p.major === 'string') {
+            const major = document.querySelector('.profile-major-display');
+            if (major) major.textContent = p.major;
+        }
+
+        // Verification Status
+        if (p.verificationStatus || p.isVerified !== undefined) {
+            const avatarWrapper = document.querySelector('.profile-avatar-wrapper');
+            const titleRow = document.querySelector('.profile-main-title');
+            const isVerified = p.isVerified === true || p.isVerified === 1; // Normalize
+
+            // Avatar Badge
+            if (avatarWrapper) {
+                let badge = avatarWrapper.querySelector('.profile-avatar-status-badge');
+                if (isVerified && !badge) {
+                    avatarWrapper.insertAdjacentHTML('beforeend', `<div class="profile-avatar-status-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>`);
+                } else if (!isVerified && badge) {
+                    badge.remove();
+                }
+            }
+
+            // Title Pill
+            if (titleRow) {
+                let pill = titleRow.querySelector('.profile-pill-verified');
+                if (isVerified && !pill) {
+                    titleRow.insertAdjacentHTML('beforeend', `<span class="profile-pill profile-pill-verified">Verified</span>`);
+                } else if (!isVerified && pill) {
+                    pill.remove();
+                }
+            }
+
+            if (App.syncDocumentVerificationState && p.verificationStatus) {
+                App.syncDocumentVerificationState({
+                    verificationStatus: p.verificationStatus
+                });
+            }
+        }
+
+        // Friend Count
+        if (typeof p.friendCount === 'number') {
+            const friendTab = document.getElementById('profile-tab-friends');
+            if (friendTab) {
+                let badge = friendTab.querySelector('.tab-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'tab-badge';
+                    badge.style.cssText = "background:#ef4444; color:white; font-size:0.75rem; padding:2px 6px; border-radius:10px; margin-left:6px;";
+                    friendTab.appendChild(badge);
+                }
+                badge.textContent = p.friendCount;
+                if (p.friendCount === 0) badge.style.display = 'none';
+                else badge.style.display = 'inline-block';
+            }
+        }
+    }
 
     // ------------------------------
     // SHARED HELPERS
@@ -157,6 +268,9 @@ window.App = window.App || {};
     App.renderProfile = async (panel) => {
         if (!panel) return;
 
+        // 🔥 CRITICAL: Disconnect previous instance to prevent ghost listeners
+        disconnectProfileSocket();
+
         App.setPageHeader('Profile', 'Manage your account and profile');
         panel.classList.remove('profile-edit-root');
         App.renderSpinner(panel);
@@ -171,6 +285,7 @@ window.App = window.App || {};
         }
 
         const profileData = {
+            userId: data.userId, // Needed for socket
             username: data.username ? data.username.replace(/^@/, '') : 'user',
             major: data.major || '', 
             institute: data.schoolName || 'My University', 
@@ -184,7 +299,8 @@ window.App = window.App || {};
             receiptUrl: data.receiptUrl,
             // Account Expire date comes from Mongo profile, synced from SQLite
             accountExpireDate: formatExpireDate(data.accountExpireDate),
-            bio: data.bio || ''
+            bio: data.bio || '',
+            friendCount: data.friendCount || 0 // Assuming API returns this
         };
 
         if (App.syncDocumentVerificationState) {
@@ -244,11 +360,15 @@ window.App = window.App || {};
                 
                  <div class="profile-tabs-row">
                     <button id="profile-tab-overview" class="profile-tab-button profile-tab-active">Overview<span class="profile-tab-underline"></span></button>
-                    <button id="profile-tab-friends" class="profile-tab-button">Friends<span class="profile-tab-underline"></span></button>
+                    <button id="profile-tab-friends" class="profile-tab-button">
+                        Friends 
+                        ${profileData.friendCount > 0 ? `<span class="tab-badge" style="background:#ef4444; color:white; font-size:0.75rem; padding:2px 6px; border-radius:10px; margin-left:6px;">${profileData.friendCount}</span>` : ''}
+                        <span class="profile-tab-underline"></span>
+                    </button>
                 </div>
                 
                 <div id="profile-tab-overview-content" class="profile-tab-section">
-                     <div class="profile-overview-grid">
+                      <div class="profile-overview-grid">
                         <div id="doc-verification-wrapper"></div>
 
                         <div class="profile-status-card logout-card">
@@ -258,11 +378,14 @@ window.App = window.App || {};
                              </div>
                              <button id="profile-logout-btn" class="profile-logout-btn">Log Out</button>
                         </div>
-                     </div>
+                      </div>
                 </div>
                 <div id="profile-tab-friends-content" class="profile-tab-section profile-tab-section-hidden"></div>
             </div>
         `;
+
+        // 🔥 Connect Socket for Real-Time Updates AFTER DOM is rendered
+        connectProfileSocket();
 
         // Pass the expiration date to the helper function so it can render it in the card
         // Note: The helper function in DocumentVerification.js handles rendering, we just ensure data is synced.
@@ -290,6 +413,8 @@ window.App = window.App || {};
         if (logoutBtn) {
             logoutBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
+                // 🔥 CRITICAL: Cleanup socket on logout
+                disconnectProfileSocket();
                 if (typeof window.logout === 'function') await window.logout();
                 else window.location.href = 'index.html';
             });

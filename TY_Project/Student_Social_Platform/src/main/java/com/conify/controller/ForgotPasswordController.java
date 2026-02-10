@@ -2,7 +2,7 @@ package com.conify.controller;
 
 import com.conify.dto.ForgotPasswordDTO;
 import com.conify.dto.ResetPasswordDTO;
-import com.conify.dto.VerifyDTO;
+import com.conify.dto.OTPVerifyDTO;
 import com.conify.service.ForgotPasswordService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -36,7 +36,7 @@ public class ForgotPasswordController {
 
     // --- FIXED: This method now sets the cookie ---
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, String>> verifyOtp(@RequestBody VerifyDTO dto, HttpServletResponse httpResponse) {
+    public ResponseEntity<Map<String, String>> verifyOtp(@RequestBody OTPVerifyDTO dto, HttpServletResponse httpResponse) {
         try {
             forgotPasswordService.verifyResetOtp(dto);
             

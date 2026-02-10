@@ -1,7 +1,7 @@
 package com.conify.service;
 
 import com.conify.dto.ForgotPasswordDTO;
-import com.conify.dto.VerifyDTO;
+import com.conify.dto.OTPVerifyDTO;
 import com.conify.model.User;
 import com.conify.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +11,7 @@ import at.favre.lib.crypto.bcrypt.BCrypt;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.Optional;
+
 import java.util.Random;
 
 @Service
@@ -48,7 +48,7 @@ public class ForgotPasswordService {
     }
 
     @Transactional(readOnly = true)
-    public void verifyResetOtp(VerifyDTO dto) throws Exception {
+    public void verifyResetOtp(OTPVerifyDTO dto) throws Exception {
         User user = userRepository.findByEmail(dto.getEmail().toLowerCase())
                 .orElseThrow(() -> new Exception("Invalid email or OTP."));
 

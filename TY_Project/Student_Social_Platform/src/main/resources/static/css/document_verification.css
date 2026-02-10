@@ -3,6 +3,15 @@
    ========================================= */
 
 /* --- Modal Scrollbar & Modernization --- */
+.amm-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 70vh;
+    padding: 1.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+
 .amm-body::-webkit-scrollbar {
     width: 6px;
 }
@@ -13,14 +22,33 @@
     background-color: rgba(0,0,0,0.15);
     border-radius: 10px;
 }
-.amm-body {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.15) transparent;
+
+.amm-footer {
+    flex-shrink: 0;
+    padding: 2rem;
+    background: white;
+    border-top: 1px solid #f3f4f6;
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* Modal Description Text */
 .modal-desc {
-    color: #6b7280; 
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+/* Error Message */
+.notification-box.error {
+    display: none;
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-bottom: 1rem;
+    opacity: 1;
 }
 
 /* --- Modal Styles --- */
@@ -81,10 +109,16 @@
 /* Previews inside Modal */
 .upload-preview {
     width: 100%;
+    display: none; /* Initially hidden, toggled by JS */
 }
+
+.upload-image-wrapper {
+    position: relative;
+}
+
 .upload-preview img {
     width: 100%;
-    height: 180px;
+    max-height: 200px;
     object-fit: contain;
     background-color: #e5e7eb;
     border-radius: 8px;
@@ -94,6 +128,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 0.5rem;
 }
 .file-name {
     font-size: 1.2rem;
@@ -110,6 +145,7 @@
     font-size: 1.2rem;
     font-weight: 600;
     cursor: pointer;
+    margin-left: auto;
 }
 .btn-remove-file:hover { text-decoration: underline; }
 

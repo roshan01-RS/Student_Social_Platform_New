@@ -16,6 +16,7 @@ public class ConifyPlatformApplication {
         // It connects to SQLite (from application.properties)
         // It automatically finds your Controllers, Models, and Repositories
         SpringApplication.run(ConifyPlatformApplication.class, args);
+       
     }
 
 }

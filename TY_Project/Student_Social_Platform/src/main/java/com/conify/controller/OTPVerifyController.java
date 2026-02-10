@@ -1,7 +1,7 @@
 package com.conify.controller;
 
-import com.conify.dto.VerifyDTO;
-import com.conify.service.VerifyService;
+import com.conify.dto.OTPVerifyDTO;
+import com.conify.service.OTPVerifyService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,30 +12,32 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-public class VerifyController {
+public class OTPVerifyController {
 
     @Autowired
-    private VerifyService verifyService;
+    private OTPVerifyService otpVerifyService;
 
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, String>> verify(@RequestBody VerifyDTO verifyDTO) {
+    public ResponseEntity<Map<String, String>> verify(@RequestBody OTPVerifyDTO verifyDTO) {
+
         Map<String, String> response = new HashMap<>();
+
         try {
-            String successMessage = verifyService.verifyUser(verifyDTO);
-            
+            String successMessage = otpVerifyService.verifyUser(verifyDTO);
+
             response.put("status", "success");
             response.put("message", successMessage);
             return ResponseEntity.ok(response);
 
-        } catch (VerifyService.VerificationException e) {
-            // Return 400 Bad Request for known verification failures (expired, wrong OTP)
+        } catch (OTPVerifyService.OTPVerificationException e) {
+
             response.put("status", "error");
             response.put("message", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
 
         } catch (Exception e) {
-            // Return 500 for unexpected server crashes
             e.printStackTrace();
+
             response.put("status", "error");
             response.put("message", "Verification failed due to server error.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

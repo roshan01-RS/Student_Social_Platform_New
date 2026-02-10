@@ -1,7 +1,6 @@
 package com.conify.controller;
 
 import com.conify.model.User;
-import com.conify.dto.FriendshipDTO;
 import com.conify.service.FriendshipService;
 import com.conify.service.JwtUtil;
 import com.conify.repository.UserRepository;

@@ -705,81 +705,51 @@ function initializeLandingPage() {
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (loginMessageDiv) {
-                loginMessageDiv.textContent = ''; // Clear inline error
-            }
-            clearInputError(loginUsernameInput);
-            clearInputError(loginPasswordInput);
+    e.preventDefault();
 
-            let isValid = true;
-            const identifier = loginUsernameInput.value.trim();
-            const password = loginPasswordInput.value;
+    const identifier = loginUsernameInput.value.trim();
+    const password = loginPasswordInput.value;
 
-            if (!identifier) { 
-                setInputError(loginUsernameInput, 'Username or Email required'); 
-                isValid = false; 
-            }
-            if (!password) { 
-                setInputError(loginPasswordInput, 'Password required'); 
-                isValid = false; 
-            }
-            if (!isValid) return;
-
-            const btn = loginForm.querySelector('button[type="submit"]');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = 'Signing in...';
-
-            let loginPayload = { 
-                identifier: identifier, 
-                password: password 
-            };
-
-            try {
-                const response = await fetch(ENDPOINTS.LOGIN, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(loginPayload)
-                });
-                
-                // We check the response status first.
-                if (response.ok) {
-                    const data = await response.json(); // Get JSON only if response is OK
-                    
-                    // ** FIXED: Check for data.status, not data.token **
-                    if (data.status === 'success') {
-                         // The token is in the HTTP cookie, so we don't save it.
-                         
-                         // FIXED: This is the green notification you wanted
-                         showGlobalNotification(data.message || 'Login successful! Redirecting...', 'success');
-                         
-                         setTimeout(() => {
-                            window.location.href = 'home_dash.html'; 
-                         }, 1000); // Wait 1 second for user to see message
-                    
-                    } else if (data.status === 'unverified') {
-                         pendingEmail = identifier.includes('@') ? identifier : '';
-                         if(pendingEmail) localStorage.setItem('pendingEmail', pendingEmail);
-                         otpContext = 'signup';
-                         openModal('otp');
-                    }
-                } else {
-                    // This handles 401 Unauthorized (Invalid Credentials)
-                    const data = await response.json();
-                    // FIXED: Use notification instead of inline message
-                    showGlobalNotification(data.message || 'Invalid email or password.', 'error');
-                }
-            } catch (err) {
-                 // This handles 500 Internal Server Error or network failure
-                 // FIXED: Use notification instead of inline message
-                 showGlobalNotification('Server connection failed. Please try again.', 'error');
-            } finally {
-                 btn.disabled = false;
-                 btn.innerHTML = originalText;
-            }
-        });
+    if (!identifier || !password) {
+        showGlobalNotification("Missing credentials", "error");
+        return;
     }
+
+    const btn = loginForm.querySelector('button');
+    btn.disabled = true;
+    btn.innerHTML = "Signing in...";
+
+    try {
+        const res = await fetch(ENDPOINTS.LOGIN, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include", // 🔥 REQUIRED FOR COOKIE AUTH
+            body: JSON.stringify({ identifier, password })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === "success") {
+            showGlobalNotification("Login successful", "success");
+            setTimeout(() => location.href = "home_dash.html", 800);
+        }
+        else if (data.status === "unverified") {
+            pendingEmail = identifier.includes("@") ? identifier : "";
+            localStorage.setItem("pendingEmail", pendingEmail);
+            openModal("otp");
+        }
+        else {
+            showGlobalNotification(data.message || "Login failed", "error");
+        }
+
+    } catch {
+        showGlobalNotification("Server unreachable", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = "Login";
+    }
+});
+ }
 
     // =========================================
     // 8. OTP LOGIC

@@ -1,13 +1,19 @@
-// ChatPanel.js - DEBUG VERSION (FULL updated file)
-// Logic updated: 
-// 1. Removed Unread Badge Logic (Sidebar).
-// 2. Removed Unread Divider Line (Chat Area).
-// 3. Increased Chat Input Font Size.
-// 4. Preserved multi-line textarea and other fixes.
+// ChatPanel.js - FULLY MERGED VERSION (WITH LAST SEEN & FIXES & REPLY)
+// Features Synced:
+// 1. Initial Presence Snapshot (Fixes offline/online status on load).
+// 2. Robust Typing Logic (Rate limiting + Safety Auto-hide + Stop on Blur).
+// 3. Unread Logic Removed (Sidebar & Chat Area).
+// 4. Preserved: Image Uploads, Emojis, Friendship Polling.
+// 5. Updated: Typing Indicator inside message area (horizontal bubble)
+// 6. Updated: Fixed Input Height with Scrollbar
+// 7. Updated: Red/Green status badges on both sidebar and header
+// 8. Added: Last Seen Logic (Merged from new code)
+// 9. FIXED: Online Badge Visibility (Fixed getTemplate issue by wrapping HTML)
+// 10. ADDED: Reply to Message functionality (Hover button + Quote preview)
 
 (function(App) {
 
-    const API_BASE = '';
+    const API_BASE = 'http://localhost:8000';
     let stompClient = null;
     let selectedUser = null;
     let currentMessages = [];
@@ -15,14 +21,21 @@
     let userId = null; 
     let imageFileToUpload = null; 
     
-    // NEW: State for typing and auto-refresh
+    // --- TYPING & POLLING STATE ---
     let typingTimeout = null;
-    // let firstUnreadId = null; // Removed
+    let typingStopTimeout = null;
+    let lastTypingSentAt = 0;
+    
     let refreshInterval = null; 
     let activeFriendshipPoll = null; 
 
+    // 🔥 REPLY STATE
+    let replyContext = null;
+
     // presence map: userId (string) -> boolean
     const presence = {};
+    // 🔥 last-seen cache: userId -> ISO timestamp
+    const lastSeenCache = {};
 
     // --- GLOBAL TIME FORMATTER (12-Hour Format) ---
     App.formatTime = (dateInput) => {
@@ -47,19 +60,41 @@
             console.log(`[${type.toUpperCase()}] Notification: ${message}`);
         }
     };
-    
-    // --- Helper: Fetch HTML ---
-    async function loadHtml(url) {
-        try {
-            const response = await fetch(url + '?v=' + new Date().getTime());
-            if (!response.ok) throw new Error(`Failed to load ${url}`);
-            let text = await response.text();
-            text = text.replace(/<!-- Code injected by live-server -->[\s\S]*?<\/script>/gi, "");
-            return text;
-        } catch (err) {
-            console.error("HTML Load Error:", err);
-            return null;
+
+    // --- Helper: Last Seen Formatter ---
+    function formatLastSeen(ts) {
+        if (!ts) return 'Offline';
+        const d = new Date(ts);
+        const now = new Date();
+
+        const diffMs = now - d;
+        const diffMin = Math.floor(diffMs / 60000);
+
+        if (diffMin < 1) return 'Last seen just now';
+        if (diffMin < 60) return `Last seen ${diffMin} min ago`;
+
+        const sameDay = d.toDateString() === now.toDateString();
+        if (sameDay) return `Last seen today at ${App.formatTime(d)}`;
+
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        if (d.toDateString() === yesterday.toDateString()) {
+            return `Last seen yesterday at ${App.formatTime(d)}`;
         }
+
+        return `Last seen ${d.toLocaleDateString()} ${App.formatTime(d)}`;
+    }
+
+    async function fetchLastSeen(userId) {
+        if (lastSeenCache[userId]) return lastSeenCache[userId];
+        try {
+            const res = await App.fetchData(`/api/users/${userId}/last-seen`);
+            if (res?.lastSeenAt) {
+                lastSeenCache[userId] = res.lastSeenAt;
+                return res.lastSeenAt;
+            }
+        } catch (e) {}
+        return null;
     }
 
     // --- Helper: Get Current User ID ---
@@ -75,9 +110,37 @@
         return null;
     }
 
+    // 🔥 NEW — INITIAL PRESENCE SNAPSHOT
+    async function syncInitialPresence() {
+        try {
+            const onlineUsers = await App.fetchData('/api/presence/online-users');
+            if (Array.isArray(onlineUsers)) {
+                onlineUsers.forEach(uid => {
+                    presence[String(uid)] = true;
+                    updateSidebarPresence(String(uid), true);
+                });
+                // Force a badge update on existing list if needed
+                if (document.getElementById('chat-list-container')) {
+                      // This ensures badges appear even if renderUserList ran before sync
+                      const buttons = document.querySelectorAll('.chat-user-button');
+                      buttons.forEach(btn => {
+                          const uid = btn.dataset.userId;
+                          if (presence[uid]) updateSidebarPresence(uid, true);
+                      });
+                }
+            }
+        } catch (e) {
+            console.error('Presence snapshot sync failed', e);
+        }
+    }
+
     // --- WebSocket Connection ---
     function connectWebSocket() {
-        if (stompClient && stompClient.connected) return;
+        if (stompClient && stompClient.connected) {
+            // 🔥 CRITICAL FIX: Even if connected, re-sync presence to ensure badges show up on re-render
+            syncInitialPresence();
+            return;
+        }
         if (!userId) return;
 
         if (!window.SockJS || !window.Stomp) {
@@ -94,18 +157,22 @@
             
             const topic1 = `/user/queue/messages`;
             const topic2 = `/user/${userId}/queue/messages`;
-            try { stompClient.subscribe(topic1, (m) => onStompMessage(m)); } catch(e){}
-            try { stompClient.subscribe(topic2, (m) => onStompMessage(m)); } catch(e){}
+            
+            stompClient.subscribe(topic1, onStompMessage);
+            stompClient.subscribe(topic2, onStompMessage);
 
-            try { stompClient.subscribe(`/user/queue/typing`, (m) => onStompTyping(m)); } catch(e){}
-            try { stompClient.subscribe(`/user/${userId}/queue/typing`, (m) => onStompTyping(m)); } catch(e){}
+            stompClient.subscribe(`/user/queue/typing`, onStompTyping);
+            stompClient.subscribe(`/user/${userId}/queue/typing`, onStompTyping);
 
-            try { stompClient.subscribe(`/user/queue/read-receipts`, (m) => onStompRead(m)); } catch(e){}
-            try { stompClient.subscribe(`/user/${userId}/queue/read-receipts`, (m) => onStompRead(m)); } catch(e){}
+            stompClient.subscribe(`/user/queue/read-receipts`, onStompRead);
+            stompClient.subscribe(`/user/${userId}/queue/read-receipts`, onStompRead);
 
-            try { stompClient.subscribe(`/topic/presence`, (m) => onStompPresence(m)); } catch(e){}
-            try { stompClient.subscribe(`/user/queue/presence`, (m) => onStompPresence(m)); } catch(e){}
-            try { stompClient.subscribe(`/user/${userId}/queue/presence`, (m) => onStompPresence(m)); } catch(e){}
+            stompClient.subscribe(`/topic/presence`, onStompPresence);
+            stompClient.subscribe(`/user/queue/presence`, onStompPresence);
+            stompClient.subscribe(`/user/${userId}/queue/presence`, onStompPresence);
+
+            // 🔥 CRITICAL FIX: Sync Presence immediately after connect
+            syncInitialPresence();
 
             renderUserList(); 
         }, function(error) {
@@ -114,27 +181,41 @@
         });
     }
 
-    function onStompMessage(messageOutput) {
-        if (!messageOutput || !messageOutput.body) return;
-        try { handleIncomingMessage(JSON.parse(messageOutput.body)); } catch (e) {}
+    function onStompMessage(m) {
+        if (m?.body) handleIncomingMessage(JSON.parse(m.body));
     }
-
-    function onStompTyping(output) {
-        if (!output || !output.body) return;
-        try { handleTypingEvent(JSON.parse(output.body)); } catch(e) {}
+    function onStompTyping(m) {
+        if (m?.body) handleTypingEvent(JSON.parse(m.body));
     }
-
-    function onStompRead(output) {
-        if (!output || !output.body) return;
-        try { handleReadReceipt(JSON.parse(output.body)); } catch(e) {}
+    function onStompRead(m) {
+        if (m?.body) handleReadReceipt(JSON.parse(m.body));
     }
-
-    function onStompPresence(output) {
-        if (!output || !output.body) return;
-        try { handlePresenceEvent(JSON.parse(output.body)); } catch(e) {}
+    function onStompPresence(m) {
+        if (m?.body) handlePresenceEvent(JSON.parse(m.body));
     }
 
     // --- HANDLERS ---
+
+    function sendTyping(isTyping) {
+        if (!stompClient || !stompClient.connected || !selectedUser) return;
+
+        const now = Date.now();
+        if (isTyping && now - lastTypingSentAt < 700) return;
+        
+        if (isTyping) lastTypingSentAt = now;
+
+        stompClient.send("/app/chat.typing", {}, JSON.stringify({
+             senderId: userId,
+             recipientId: selectedUser.id,
+             isTyping: isTyping
+        }));
+    }
+
+    function stopTypingHard() {
+        clearTimeout(typingTimeout);
+        clearTimeout(typingStopTimeout);
+        sendTyping(false);
+    }
     
     function handleTypingEvent(payload) {
         if (!selectedUser || String(payload.senderId) !== String(selectedUser.id)) return;
@@ -145,13 +226,39 @@
         if (!typingEl || !statusEl) return;
         
         if (payload.isTyping) {
-            typingEl.style.display = 'flex';
+            typingEl.style.display = 'flex'; 
             statusEl.textContent = 'typing...';
             const scrollArea = document.getElementById('chat-messages-area');
             if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
+
+            clearTimeout(typingStopTimeout);
+            typingStopTimeout = setTimeout(() => {
+                typingEl.style.display = 'none';
+                // Restore status text (online/last seen)
+                if (selectedUser.online) {
+                      statusEl.textContent = 'Active now';
+                } else {
+                      // We might need to refetch or use cached last seen
+                      if(lastSeenCache[selectedUser.id]) {
+                          statusEl.textContent = formatLastSeen(lastSeenCache[selectedUser.id]);
+                      } else {
+                          statusEl.textContent = 'Offline';
+                      }
+                }
+            }, 3000);
+
         } else {
+            clearTimeout(typingStopTimeout);
             typingEl.style.display = 'none';
-            statusEl.textContent = selectedUser && selectedUser.online ? 'Active now' : 'Offline';
+             if (selectedUser.online) {
+                  statusEl.textContent = 'Active now';
+            } else {
+                 if(lastSeenCache[selectedUser.id]) {
+                      statusEl.textContent = formatLastSeen(lastSeenCache[selectedUser.id]);
+                 } else {
+                      statusEl.textContent = 'Offline';
+                 }
+            }
         }
     }
     
@@ -178,80 +285,94 @@
 
         if (updated) {
             const container = document.querySelector('#chat-messages-area .profile-content-wrapper');
-            if (container) container.innerHTML = renderMessagesHTML();
+            if (container) {
+                container.innerHTML = renderMessagesHTML();
+                attachReplyHandlers(container); // Re-attach handlers
+            }
         }
     }
     
-    function handlePresenceEvent(payload) {
-        if (!payload) return;
-        const id = String(payload.userId ?? payload.id ?? payload.user);
-        const online = !!payload.online;
+    // 🔥 UPDATED PRESENCE LOGIC
+    function handlePresenceEvent(p) {
+        if (!p) return;
+        const id = String(p.userId ?? p.id ?? p.user);
+        const online = !!p.online;
 
         if (!id) return;
-        
+
         presence[id] = online;
-        log(`Presence Update: User ${id} is now ${online ? 'Online' : 'Offline'}`);
+        
+        // Cache last seen if going offline
+        if (!online) {
+            lastSeenCache[id] = new Date().toISOString();
+        }
 
         updateSidebarPresence(id, online);
 
-        if (selectedUser && String(selectedUser.id) === id) {
+        if (selectedUser?.id === id) {
             selectedUser.online = online;
-            const statusEl = document.getElementById('chat-header-status');
-            const avatarDot = document.querySelector('.chat-window-userinfo .chat-user-online-badge');
+            const el = document.getElementById('chat-header-status');
+            const avatarWrapper = document.querySelector('.chat-window-userinfo .chat-user-avatar-wrapper');
             
-            if (statusEl) statusEl.textContent = online ? 'Active now' : 'Offline';
-            
-            if (online) {
-                if(!avatarDot) {
-                    const wrapper = document.querySelector('.chat-window-userinfo .chat-user-avatar-wrapper');
-                    if(wrapper) wrapper.insertAdjacentHTML('beforeend', '<div class="chat-user-online-badge"></div>');
+            // Update Text
+            if (el) {
+                if (online) {
+                    el.textContent = 'Active now';
+                } else {
+                    // Use cached value or fetch if needed
+                    if (lastSeenCache[id]) {
+                        el.textContent = formatLastSeen(lastSeenCache[id]);
+                    } else {
+                        // Async fetch fallback
+                        fetchLastSeen(id).then(ls => el.textContent = formatLastSeen(ls));
+                    }
                 }
-            } else {
-                if(avatarDot) avatarDot.remove();
+            }
+            
+            // Update chat header badge
+            let badge = avatarWrapper?.querySelector('.status-indicator-badge');
+            if (badge) {
+                badge.className = `status-indicator-badge ${online ? 'online' : 'offline'}`;
+            } else if (avatarWrapper) {
+                avatarWrapper.insertAdjacentHTML('beforeend', `<div class="status-indicator-badge ${online ? 'online' : 'offline'}"></div>`);
             }
 
             if (online) {
-                let changed = false;
-                currentMessages.forEach(m => {
-                    if (m.sender === 'me' && m.status !== 'READ' && m.status !== 'DELIVERED') {
-                        m.status = 'DELIVERED';
-                        changed = true;
-                    }
-                });
-                if (changed) {
-                    const container = document.querySelector('#chat-messages-area .profile-content-wrapper');
-                    if (container) container.innerHTML = renderMessagesHTML();
-                }
+                updateMessagesToDelivered();
             }
         }
     }
 
-    function updateSidebarPresence(userIdToUpdate, online) {
-        try {
-            const buttons = document.querySelectorAll(`.chat-user-button[data-user-id="${userIdToUpdate}"]`);
-            buttons.forEach(btn => {
-                btn.dataset.online = online ? 'true' : 'false';
-                const avatarWrapper = btn.querySelector('.chat-user-avatar-wrapper');
-                if (avatarWrapper) {
-                    let badge = avatarWrapper.querySelector('.chat-user-online-badge');
-                    if (online) {
-                        if (!badge) avatarWrapper.insertAdjacentHTML('beforeend', '<div class="chat-user-online-badge"></div>');
-                    } else {
-                        if (badge) badge.remove();
-                    }
+    function updateMessagesToDelivered() {
+        let changed = false;
+        currentMessages.forEach(m => {
+            if (m.sender === 'me' && m.status !== 'READ' && m.status !== 'DELIVERED') {
+                m.status = 'DELIVERED';
+                changed = true;
+            }
+        });
+        if (changed) {
+            const container = document.querySelector('#chat-messages-area .profile-content-wrapper');
+            if (container) {
+                container.innerHTML = renderMessagesHTML();
+                attachReplyHandlers(container);
+            }
+        }
+    }
+
+    // 🔥 UPDATED Sidebar Presence
+    function updateSidebarPresence(id, online) {
+        document.querySelectorAll(`.chat-user-button[data-user-id="${id}"]`)
+            .forEach(btn => {
+                btn.dataset.online = online;
+                const wrap = btn.querySelector('.chat-user-avatar-wrapper');
+                let badge = wrap?.querySelector('.status-indicator-badge');
+                if (badge) {
+                    badge.className = `status-indicator-badge ${online ? 'online' : 'offline'}`;
+                } else if (wrap) {
+                    wrap.insertAdjacentHTML('beforeend', `<div class="status-indicator-badge ${online ? 'online' : 'offline'}"></div>`);
                 }
             });
-        } catch (e) { }
-    }
-
-    function sendTyping(isTyping) {
-        if (stompClient && stompClient.connected && selectedUser) {
-             stompClient.send("/app/chat.typing", {}, JSON.stringify({
-                 senderId: userId,
-                 recipientId: selectedUser.id,
-                 isTyping: isTyping
-             }));
-        }
     }
     
     async function sendReadReceipt(otherUserId, conversationId) {
@@ -290,7 +411,7 @@
         
         let mediaSrc = null;
         if (msg.mediaUrl) {
-             mediaSrc = msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_BASE}/${msg.mediaUrl}`;
+              mediaSrc = msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${API_BASE}/${msg.mediaUrl}`;
         }
 
         const displayMsg = {
@@ -300,7 +421,10 @@
             image: mediaSrc,
             timestamp: formatTime(msg.timestamp), 
             rawTimestamp: msg.timestamp,
-            status: msg.status || 'SENT'
+            status: msg.status || 'SENT',
+            replyToMessageId: msg.replyToMessageId,
+            replyToSenderName: msg.replyToSenderName,
+            replyToContent: msg.replyToContent
         };
 
         // --- BACKGROUND MESSAGE ---
@@ -317,7 +441,6 @@
             (msgSenderId === selectedIdStr && msgRecipientId === currentUserIdStr);
 
         if (isCurrentConversation) {
-            // STRICT CHECK: Ensure friendship validity (handled by poll mostly, but good for race conditions)
             if (type === 'other') {
                 handleTypingEvent({ senderId: msgSenderId, isTyping: false });
                 sendReadReceipt(selectedUser.id, getConversationId(userId, selectedUser.id));
@@ -336,7 +459,12 @@
                     currentMessages.splice(optIndex, 1, serverMsg);
 
                     const oldEl = document.getElementById(`msg-${was.id}`);
-                    if (oldEl) oldEl.outerHTML = renderMessageBubble(serverMsg);
+                    if (oldEl) {
+                        oldEl.outerHTML = renderMessageBubble(serverMsg);
+                        // Re-attach handlers to the new bubble
+                        const container = document.querySelector('#chat-messages-area .profile-content-wrapper');
+                        if (container) attachReplyHandlers(container);
+                    }
                     else appendMessageToDOM(serverMsg);
                     
                     updateSidebarPreview(selectedUser.id, displayMsg.content, displayMsg.timestamp);
@@ -351,7 +479,6 @@
             
             updateSidebarPreview(selectedUser.id, displayMsg.content, displayMsg.timestamp);
         } else {
-            // OTHER CONVERSATION
             const targetId = (type === 'me') ? msgRecipientId : msgSenderId;
             updateSidebarPreview(targetId, displayMsg.content, displayMsg.timestamp);
             if(type === 'other') showNotification(`Message from ${displayMsg.sender}`);
@@ -363,7 +490,6 @@
         const btn = document.querySelector(`.chat-user-button[data-user-id="${userIdToUpdate}"]`);
         
         if (!btn) {
-            // If user isn't in the list yet, we need to refresh to pull them in
             renderUserList(); 
             return;
         }
@@ -373,8 +499,6 @@
 
         const timeEl = btn.querySelector('.chat-user-timestamp');
         if (timeEl) timeEl.textContent = timeString;
-
-        // REMOVED: Badge increment logic
         
         const container = document.getElementById('chat-list-container');
         if (container && btn !== container.firstElementChild) {
@@ -392,6 +516,52 @@
             }
         } catch (e) { console.error("Friend Check Failed", e); }
         return false;
+    }
+
+    // 🔥 RENDER REPLY PREVIEW
+    function renderReplyPreview(container) {
+        if(!container) return;
+        let area = container.querySelector('#chat-reply-preview');
+        if (!area) return;
+
+        if (!replyContext) {
+            area.style.display = 'none';
+            return;
+        }
+        area.innerHTML = `
+            <div style="flex:1; overflow:hidden;">
+                <strong style="color:#4169E1; font-size:0.9rem;">Replying to ${replyContext.senderName}</strong>
+                <div style="font-size:0.9rem; opacity:0.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${replyContext.content}</div>
+            </div>
+            <button id="clear-reply-btn" style="background:none; border:none; cursor:pointer; color:#666; font-size:1.2rem; padding:0 5px;">✕</button>
+        `;
+        area.style.display = 'flex';
+
+        area.querySelector('#clear-reply-btn').onclick = () => {
+            replyContext = null;
+            renderReplyPreview(container);
+        };
+    }
+
+    // 🔥 ATTACH REPLY HANDLERS
+    function attachReplyHandlers(container) {
+        if(!container) return;
+        container.querySelectorAll('.reply-msg-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                e.stopPropagation(); // Prevent bubbling issues
+                replyContext = {
+                    messageId: btn.dataset.id,
+                    senderName: btn.dataset.sender,
+                    content: btn.dataset.content
+                };
+                const inputArea = document.querySelector('.chat-input-area');
+                renderReplyPreview(inputArea);
+                
+                // Focus input
+                const input = document.getElementById('private-chat-input');
+                if(input) input.focus();
+            };
+        });
     }
 
     // Update Input Area based on friendship status
@@ -415,20 +585,25 @@
                        <button id="chat-remove-preview-btn" class="btn-remove-preview" title="Remove" style="margin-left: auto;">✕</button>
                    </div>
                 </div>
-                <div class="chat-input-wrapper" style="align-items: flex-end;"> 
-                      <button class="btn-icon" id="chat-photo-btn" title="Add Photo" style="margin-bottom: 5px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <!-- 🔥 ADDED: Reply Preview Container -->
+                <div id="chat-reply-preview" style="display:none; padding:8px 12px; background:#f0f9ff; border-left:4px solid #4169E1; margin-bottom:5px; border-radius:4px; justify-content:space-between; align-items:center; width:100%; box-sizing:border-box;"></div>
+
+                <div class="chat-input-wrapper" style="align-items: flex-end; height: 70px;"> 
+                      <button class="btn-icon" id="chat-photo-btn" title="Add Photo" style="margin-bottom: 12px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                       </button>
-                      <button class="btn-icon" id="chat-emoji-btn" title="Add Emoji" style="margin-bottom: 5px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                      <button class="btn-icon" id="chat-emoji-btn" title="Add Emoji" style="margin-bottom: 12px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
                       </button>
                       <input type="file" id="chat-file-input" style="display: none;" accept="image/*">
-                      <div class="chat-input-field-wrapper" style="flex: 1; display: flex;">
-                        <textarea placeholder="Type a message..." class="chat-input-field" id="private-chat-input" rows="1" style="resize: none; overflow-y: hidden; min-height: 40px; max-height: 120px; line-height: 1.4; padding: 10px 12px; border-radius: 20px; width: 100%; box-sizing: border-box; font-family: inherit; font-size: 1.15rem; border: 1px solid #e5e7eb;"></textarea>
+                      <div class="chat-input-field-wrapper" style="flex: 1; display: flex; height: 100%; padding: 5px 0;">
+                        <textarea placeholder="Type a message..." class="chat-input-field" id="private-chat-input" 
+                            style="resize: none; overflow-y: auto; height: 100%; max-height: 100%; line-height: 1.4; padding: 12px 15px; border-radius: 20px; width: 100%; box-sizing: border-box; font-family: inherit; font-size: 1.25rem; border: 1px solid #e5e7eb; scrollbar-width: thin; scrollbar-color: #d1d5db transparent;"></textarea>
                       </div>
-                      <button class="chat-send-btn" id="chat-send-btn" style="margin-bottom: 2px;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+                      <button class="chat-send-btn" id="chat-send-btn" style="margin-bottom: 8px; width: 42px; height: 42px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
                 </div>`;
             attachChatListeners();
+            if(replyContext) renderReplyPreview(inputArea);
         } else {
             inputArea.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 10px; color: #666;">
@@ -484,20 +659,42 @@
     function renderMessageBubble(msg) {
         const isMe = msg.sender === 'me';
         const statusHtml = renderStatusIcon(msg.status, isMe);
+        const senderNameForReply = isMe ? 'You' : (selectedUser?.name || 'User');
+
+        // 🔥 REPLY QUOTE
+        let quoteHtml = '';
+        if (msg.replyToContent) {
+             quoteHtml = `
+               <div class="reply-quote" style="border-left: 3px solid #4169E1; padding-left: 8px; margin-bottom: 6px; opacity: 0.85; font-size: 0.9em; background: rgba(0,0,0,0.03); border-radius: 0 4px 4px 0;">
+                  <strong style="color: #4169E1; font-size: 0.85em;">${msg.replyToSenderName || 'User'}</strong>
+                  <div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${msg.replyToContent}</div>
+               </div>`;
+        }
+
+        // 🔥 REPLY BUTTON (Visible on Hover via CSS)
+        const replyBtnHtml = `
+          <span class="reply-msg-btn" data-id="${msg.id}" data-sender="${senderNameForReply}" data-content="${msg.content || 'Photo'}" 
+                style="position:absolute; top:4px; right:${isMe ? 'auto' : '-24px'}; left:${isMe ? '-24px' : 'auto'}; cursor:pointer; font-size:1.2rem;" title="Reply">
+             ↩
+          </span>`;
 
         return `
-            <div class="message-bubble-wrapper ${msg.sender}" id="msg-${msg.id}">
-                <div class="message-bubble ${msg.sender}">
-                    ${msg.image ? `
-                        <img src="${msg.image}" alt="Shared Image" style="max-width:300px; border-radius:4px; margin-bottom:5px; cursor:pointer;" onclick="window.open(this.src, '_blank')">
-                        <div style="margin-top:4px;"><a href="${msg.image}" download target="_blank" style="color:inherit; font-size:0.9em; opacity:0.7; text-decoration:underline;">Download</a></div>
-                    ` : ''}
-                    <div class="message-bubble-content">
-                        <p style="margin:0; word-wrap:break-word; word-break:break-word; white-space:pre-wrap;">${escapeHtml(msg.content || '')}</p>
-                        <div class="msg-meta">
-                            <span class="message-time">${msg.timestamp || 'Now'}</span>
-                            ${statusHtml}
+            <div class="message-wrapper-outer" style="position:relative;">
+                <div class="message-bubble-wrapper ${msg.sender}" id="msg-${msg.id}">
+                    <div class="message-bubble ${msg.sender}">
+                        <div class="message-bubble-content">
+                            ${quoteHtml}
+                            ${msg.image ? `
+                                <img src="${msg.image}" alt="Shared Image" style="max-width:300px; border-radius:4px; margin-bottom:5px; cursor:pointer;" onclick="window.open(this.src, '_blank')">
+                                <div style="margin-top:4px;"><a href="${msg.image}" download target="_blank" style="color:inherit; font-size:0.9em; opacity:0.7; text-decoration:underline;">Download</a></div>
+                            ` : ''}
+                            <p style="margin:0; word-wrap:break-word; word-break:break-word; white-space:pre-wrap;">${escapeHtml(msg.content || '')}</p>
+                            <div class="msg-meta">
+                                <span class="message-time">${msg.timestamp || 'Now'}</span>
+                                ${statusHtml}
+                            </div>
                         </div>
+                        ${replyBtnHtml}
                     </div>
                 </div>
             </div>`;
@@ -515,34 +712,86 @@
                 const d1 = new Date(lastMsg.rawTimestamp).toDateString();
                 const d2 = new Date(displayMsg.rawTimestamp).toDateString();
                 if (d1 !== d2) {
-                     messageContainer.insertAdjacentHTML('beforeend', renderDateSeparator(displayMsg.rawTimestamp));
+                      messageContainer.insertAdjacentHTML('beforeend', renderDateSeparator(displayMsg.rawTimestamp));
                 }
             }
             const newBubbleHtml = renderMessageBubble(displayMsg);
             messageContainer.insertAdjacentHTML('beforeend', newBubbleHtml);
+            
+            // Re-attach reply handlers because new HTML was injected
+            attachReplyHandlers(messageContainer);
+
             const scrollArea = document.getElementById('chat-messages-area');
             if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
         }
     }
 
+    // 🔥 MOVED STYLE BLOCK HERE (Global Scope)
+    const CHAT_STYLES = `
+    <style>
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+        .typing-dots-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            min-width: 40px;
+            justify-content: center;
+        }
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #90949c;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        .status-indicator-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            z-index: 2;
+        }
+        .status-indicator-badge.online { background-color: #10b981; }
+        .status-indicator-badge.offline { background-color: #ef4444; }
+        .chat-user-avatar-wrapper { position: relative; }
+        
+        /* 🔥 REPLY BUTTON STYLES (Hover to show) */
+        .reply-msg-btn { opacity: 0; transition: opacity 0.2s; }
+        .message-bubble:hover .reply-msg-btn { opacity: 1; }
+    </style>`;
+
     const CHAT_PANEL_HTML = `
-    <div class="chat-layout">
-        <div class="chat-list-sidebar">
-            <div class="chat-list-header">
-                <div class="chat-search-wrapper">
-                    <svg class="chat-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></svg>
-                    <input type="text" id="chat-search-input" placeholder="Search conversations..." class="chat-search-input">
+    <div style="height: 100%; display: flex; flex-direction: column;">
+        ${CHAT_STYLES}
+        <div class="chat-layout">
+            <div class="chat-list-sidebar">
+                <div class="chat-list-header">
+                    <div class="chat-search-wrapper">
+                        <svg class="chat-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd" /></svg>
+                        <input type="text" id="chat-search-input" placeholder="Search conversations..." class="chat-search-input">
+                    </div>
+                    <button class="btn-icon" id="add-friend-btn" title="Add Friend">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
+                    </button>
                 </div>
-                <button class="btn-icon" id="add-friend-btn" title="Add Friend">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="17" y1="11" x2="23" y2="11"/></svg>
-                </button>
+                <div class="chat-list-scroll-area" id="chat-list-container">
+                    <div style="padding: 20px; text-align: center; color: #888;">Loading chats...</div>
+                </div>
             </div>
-            <div class="chat-list-scroll-area" id="chat-list-container">
-                <div style="padding: 20px; text-align: center; color: #888;">Loading chats...</div>
+            <div class="chat-window" id="chat-window-container">
+                <div class="chat-placeholder"><p>Select a conversation</p></div>
             </div>
-        </div>
-        <div class="chat-window" id="chat-window-container">
-            <div class="chat-placeholder"><p>Select a conversation</p></div>
         </div>
     </div>
     `;
@@ -568,13 +817,13 @@
                 html += renderDateSeparator(d);
                 lastDateString = dStr;
             }
-            // REMOVED: Unread Line Logic
             html += renderMessageBubble(msg);
         });
         return html;
     }
 
-    function renderChatWindow(user) {
+    // 🔥 MODIFIED: Made async to support Last Seen fetching
+    async function renderChatWindow(user) {
         log("Rendering chat window for user:", user?.id);
         const container = document.getElementById('chat-window-container');
         if (!container) return;
@@ -582,17 +831,29 @@
             container.innerHTML = `<div class="chat-placeholder"><p>Select a conversation</p></div>`;
             return;
         }
-        const initialStatus = user.online ? 'Online' : 'Offline';
+
+        // Determine initial status text
+        let statusText = 'Offline';
+        if (user.online) {
+             statusText = 'Active now';
+        } else {
+             // Try to get from cache or fetch
+             const ls = await fetchLastSeen(user.id);
+             statusText = formatLastSeen(ls);
+        }
+
+        const badgeClass = user.online ? 'online' : 'offline';
+
         container.innerHTML = `
             <div class="chat-window-header">
                 <div class="chat-window-userinfo">
                     <div class="chat-user-avatar-wrapper">
                         <img src="${user.avatar}" alt="${user.name}" class="chat-user-avatar" style="width:4rem;height:4rem;border-radius:50%;">
-                        ${user.online ? '<div class="chat-user-online-badge"></div>' : ''}
+                        <div class="status-indicator-badge ${badgeClass}"></div>
                     </div>
                     <div>
                         <h3>${escapeHtml(user.name)}</h3>
-                        <p id="chat-header-status">${initialStatus}</p>
+                        <p id="chat-header-status">${statusText}</p>
                     </div>
                 </div>
             </div>
@@ -600,14 +861,21 @@
                 <div class="profile-content-wrapper">
                     <div style="text-align:center; padding: 20px; color: #888;">Loading history...</div>
                 </div>
-                <div id="chat-typing-indicator" class="typing-indicator" style="display:none;">
-                    <span>${escapeHtml(user.name)} is typing</span>
-                    <div class="typing-dots"><span>.</span><span>.</span><span>.</span></div>
+                
+                <div id="chat-typing-indicator" class="message-bubble-wrapper other" style="display:none;">
+                    <div class="message-bubble other" style="width: fit-content; min-width: 0; padding: 0; border-radius: 18px;">
+                        <div class="message-bubble-content">
+                            <div class="typing-dots-container">
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                                <span class="typing-dot"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="chat-emoji-picker-container"></div>
             
-            <!-- CHAT INPUT AREA (Will be updated based on friend status) -->
             <div class="chat-input-area" data-state="LOADING">
                 <!-- Content injected by updateChatInputState -->
             </div>
@@ -617,19 +885,17 @@
     async function loadChatHistory(recipientId) {
         if (!userId) return;
         
-        // Stop any previous polling
+        stopTypingHard();
         if (activeFriendshipPoll) clearInterval(activeFriendshipPoll);
 
         currentMessages = [];
-        // Removed firstUnreadId logic
 
-        renderChatWindow(selectedUser); 
+        // Await the render to ensure status is fetched before showing
+        await renderChatWindow(selectedUser); 
         
-        // Initial Friend Check
         const isFriend = await checkIsFriend(recipientId);
         updateChatInputState(isFriend);
 
-        // START POLLING for real-time unfriend detection (Receiver Side)
         activeFriendshipPoll = setInterval(async () => {
              if (!selectedUser || String(selectedUser.id) !== String(recipientId)) return;
              const stillFriend = await checkIsFriend(recipientId);
@@ -640,12 +906,7 @@
             log(`Fetching history for ${recipientId}...`);
             const res = await App.fetchData(`/api/messages/${recipientId}?senderId=${userId}`, {credentials: 'include'});
             
-            let messages = [];
-            if (Array.isArray(res)) {
-                messages = res;
-            } else {
-                messages = res.messages || [];
-            }
+            let messages = Array.isArray(res) ? res : (res.messages || []);
 
             currentMessages = messages.map(msg => ({
                 id: msg.id,
@@ -654,12 +915,19 @@
                 image: msg.mediaUrl ? `${API_BASE}/${msg.mediaUrl}` : null, 
                 timestamp: formatTime(msg.timestamp), 
                 rawTimestamp: msg.timestamp, 
-                status: determineInitialStatus(msg, selectedUser)
+                status: determineInitialStatus(msg, selectedUser),
+                // 🔥 MAP REPLY FIELDS
+                replyToMessageId: msg.replyToMessageId,
+                replyToSenderName: msg.replyToSenderName,
+                replyToContent: msg.replyToContent
             }));
 
             const container = document.querySelector('#chat-messages-area .profile-content-wrapper');
             if (container) {
                 container.innerHTML = renderMessagesHTML();
+                // 🔥 ATTACH HANDLERS
+                attachReplyHandlers(container);
+
                 const scrollArea = document.getElementById('chat-messages-area');
                 if(scrollArea) scrollArea.scrollTop = scrollArea.scrollHeight;
                 
@@ -696,9 +964,7 @@
             imageFileToUpload = null;
             if(previewContainer) previewContainer.style.display = 'none';
             if(fileInput) fileInput.value = '';
-            // Reset height
             input.style.height = 'auto';
-            input.style.height = '40px'; 
         };
 
         const handleSend = async () => {
@@ -707,7 +973,6 @@
 
             if ((!text && !fileToSend) || !selectedUser || !stompClient || !userId) return;
             
-            // FINAL STRICT CHECK
             const strictFriendCheck = await checkIsFriend(selectedUser.id);
             if (!strictFriendCheck) {
                 updateChatInputState(false);
@@ -722,17 +987,29 @@
                 image: fileToSend ? URL.createObjectURL(fileToSend) : null, 
                 timestamp: formatTime(new Date()), 
                 rawTimestamp: new Date().toISOString(),
-                status: presence[String(selectedUser.id)] ? 'DELIVERED' : 'SENT'
+                status: presence[String(selectedUser.id)] ? 'DELIVERED' : 'SENT',
+                // 🔥 INCLUDE REPLY IN OPTIMISTIC MSG
+                replyToMessageId: replyContext?.messageId,
+                replyToSenderName: replyContext?.senderName,
+                replyToContent: replyContext?.content
             };
             
             currentMessages.push(optimisticMsg);
             appendMessageToDOM(optimisticMsg); 
-            updateSidebarPreview(selectedUser.id, text, optimisticMsg.timestamp, false);
+            updateSidebarPreview(selectedUser.id, text, optimisticMsg.timestamp);
 
             input.value = '';
             clearPreview();
+            
+            // 🔥 CAPTURE CONTEXT BEFORE CLEARING
+            const contextToSend = replyContext;
+            
+            // 🔥 CLEAR REPLY CONTEXT & UI
+            replyContext = null;
+            renderReplyPreview(document.querySelector('.chat-input-area'));
+            
             input.focus();
-            sendTyping(false);
+            stopTypingHard();
 
             let mediaUrl = null;
             if (fileToSend) {
@@ -762,32 +1039,32 @@
                 recipientId: selectedUser.id,
                 content: text,
                 mediaUrl: mediaUrl,
-                type: mediaUrl ? 'IMAGE' : 'TEXT'
+                type: mediaUrl ? 'IMAGE' : 'TEXT',
+                // 🔥 SEND REPLY FIELDS
+                replyToMessageId: contextToSend?.messageId,
+                replyToSenderName: contextToSend?.senderName,
+                replyToContent: contextToSend?.content
             };
             stompClient.send("/app/chat", {}, JSON.stringify(chatMessage));
         };
 
         if(sendBtn) sendBtn.addEventListener('click', handleSend);
         
-        // Updated Input Listener for Textarea
         input.addEventListener('keydown', (e) => { 
             if(e.key === 'Enter' && !e.shiftKey) { 
                 e.preventDefault(); 
                 handleSend(); 
             }
-            // Auto-resize
             setTimeout(() => {
                 input.style.height = 'auto';
                 input.style.height = Math.min(input.scrollHeight, 120) + 'px';
             }, 0);
         });
 
-        // Also trigger on input event
         input.addEventListener('input', () => {
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
             
-            // Typing logic
             if (input.value.length > 0) {
                 sendTyping(true);
                 clearTimeout(typingTimeout);
@@ -795,6 +1072,11 @@
             } else {
                  sendTyping(false);
             }
+        });
+        
+        input.addEventListener('blur', stopTypingHard);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopTypingHard();
         });
         
         if(imageBtn) imageBtn.addEventListener('click', () => fileInput.click());
@@ -820,7 +1102,6 @@
                 window.App.openEmojiPanel((emoji) => {
                     input.value += emoji;
                     input.focus();
-                    // Trigger resize
                     const event = new Event('input', { bubbles: true });
                     input.dispatchEvent(event);
                 }, emojiBtn);
@@ -841,23 +1122,17 @@
         panel.innerHTML = ''; 
         panel.appendChild(template); 
 
-        // Initial Render
         renderUserList();
         
-        // AUTO-UPDATE: Set Interval to refresh sidebar every 30s
         if (refreshInterval) clearInterval(refreshInterval);
         refreshInterval = setInterval(() => {
             renderUserList(panel.querySelector('#chat-search-input')?.value || '');
         }, 30000); 
 
-        // Expose refresh function so FriendList can trigger it
         App.refreshChatList = () => renderUserList(panel.querySelector('#chat-search-input')?.value || '');
         
-        // --- EXPOSED REFRESH FOR FRIEND LIST (Chat Input State) ---
-        // Called immediately after Unfriend Action in Friend List
         App.refreshCurrentChatState = async () => {
             if (!selectedUser) return;
-            // Check status immediately
             const isFriend = await checkIsFriend(selectedUser.id);
             updateChatInputState(isFriend);
         };
@@ -872,7 +1147,6 @@
         const container = document.getElementById('chat-list-container');
         if (!container || !userId) return;
 
-        // PRESERVE SCROLL
         const scrollTop = container.scrollTop;
 
         try {
@@ -891,13 +1165,11 @@
                 const avatarSrc = conv.avatar ? (conv.avatar.startsWith('http') ? conv.avatar : `${API_BASE}/${conv.avatar}`) : `https://api.dicebear.com/7.x/avataaars/svg?seed=default`;
                 
                 // IMPORTANT: SYNC PRESENCE MAP
-                // If local map has data, use it. If not, seed it from server response.
                 if (presence[otherIdStr] === undefined) {
                     presence[otherIdStr] = !!conv.online;
                 }
                 const onlineState = presence[otherIdStr];
-                
-                const onlineBadge = onlineState ? '<div class="chat-user-online-badge"></div>' : '';
+                const badgeClass = onlineState ? 'online' : 'offline';
 
                 return `
                 <button class="chat-user-button ${isSelected ? 'active' : ''}" 
@@ -908,7 +1180,7 @@
                     <div class="chat-user-inner">
                         <div class="chat-user-avatar-wrapper">
                             <img src="${avatarSrc}" alt="${nameDisplay}" class="chat-user-avatar">
-                            ${onlineBadge}
+                            <div class="status-indicator-badge ${badgeClass}"></div>
                         </div>
                         <div class="chat-user-details">
                             <div class="chat-user-row1">
@@ -923,7 +1195,6 @@
                 </button>
             `}).join('');
 
-            // Restore Scroll
             container.scrollTop = scrollTop;
 
             container.querySelectorAll('.chat-user-button').forEach(btn => {
@@ -952,4 +1223,4 @@
 
     App._presence = presence;
 
-})(window.App = window.App || {});
+})(window.App = window.App || {});//ye correct wala hain

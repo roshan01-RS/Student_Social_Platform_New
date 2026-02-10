@@ -1,45 +1,45 @@
 // AdminPanel.js
 const API_BASE = '';
 let stompClient = null;
+let wsConnected = false;
 
-// --- Helper: Robust Notification (Assumes it exists globally) ---
+// --- Helper: Robust Notification ---
 const showNotification = (message, type = 'success') => {
     if (window.showGlobalNotification) {
         window.showGlobalNotification(message, type);
     } else {
-        console.warn(`[NOTIFICATION FALLBACK - ${type.toUpperCase()}] ${message}`);
+        console.warn(`[${type.toUpperCase()}] ${message}`);
     }
 };
 
-// --- WebSocket Connection ---
+// --- WebSocket Connection (Auto-Update Feature) ---
 function connectWebSocket() {
-    if (stompClient && stompClient.connected) return;
+    if (wsConnected) return;
     
-    // Check if SockJS and Stomp are available (loaded via CDN in admin_panel.html)
+    // Check if SockJS and Stomp are available
     if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
         console.error("[AdminPanel] SockJS/Stomp libraries missing. Cannot connect WebSocket.");
-        showNotification("Real-time libraries missing. Check console.", "error");
         return;
     }
     
-    console.log("[AdminPanel] Attempting WebSocket connection...");
     const socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
-    stompClient.debug = (str) => console.log("[STOMP DEBUG] " + str); // Detailed Log
+    stompClient.debug = () => {}; // Cleaner logs
 
     stompClient.connect({}, function(frame) {
+        wsConnected = true;
         console.log('[AdminPanel] ✅ WebSocket Connected.');
         
-        // Subscribe to public admin verification topic
+        // Subscribe to public admin verification topic for auto-updates
         stompClient.subscribe(`/topic/admin/verifications/update`, function(messageOutput) {
-            console.log("[AdminPanel] WS: Verification Status Update Received. Triggering UI refresh.");
-            loadDashboard();
-            showNotification("New verification request submitted or status updated.", "warning");
+            console.log("[AdminPanel] 🔁 Verification Status Update Received.");
+            loadDashboard(); // Auto-refresh the list
+            showNotification("Verification list updated", "info");
         });
 
     }, function(error) {
         console.error('[AdminPanel] ❌ WebSocket Connection Error:', error);
-        showNotification("Real-time updates failed. Refresh to view new data.", "error");
+        wsConnected = false;
     });
 }
 
@@ -47,7 +47,6 @@ function connectWebSocket() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("[AdminPanel] Initializing...");
     
-    // CRITICAL FIX: Establish WS connection immediately on load
     connectWebSocket(); 
 
     loadDashboard();
@@ -58,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setupLogout() {
     document.getElementById('btn-admin-logout').addEventListener('click', async () => {
-        console.log("[AdminPanel] Logging out admin session.");
         try {
             await fetch(`${API_BASE}/api/admin/logout`, { method: 'POST' });
             window.location.href = 'admin_login.html';
@@ -91,30 +89,38 @@ function setupTabs() {
     });
 }
 
+// Global state for stats to allow local updates
+let currentStats = {
+    pending: 0,
+    verified: 0,
+    rejected: 0
+};
+
 // --- VERIFICATION DASHBOARD ---
 async function loadDashboard() {
-    console.log("[AdminPanel] Fetching pending verifications list...");
-    
-    const statsContainer = document.getElementById('stats-container');
-    if(statsContainer) statsContainer.innerHTML = `<div class="stat-card stat-pending" style="flex:1;"><div class="stat-icon"><div class="spinner"></div></div><div class="stat-body">Loading Stats...</div></div>`;
-
+    // Only show loading if empty to prevent flickering on auto-update
+    const container = document.getElementById('student-list-container');
+    if(container && container.children.length === 0) {
+         const statsContainer = document.getElementById('stats-container');
+         if(statsContainer) statsContainer.innerHTML = `<div class="stat-card stat-pending" style="flex:1;"><div class="stat-icon"><div class="spinner"></div></div><div class="stat-body">Loading Stats...</div></div>`;
+    }
 
     try {
         const pendingRes = await fetch(`${API_BASE}/api/admin/pending-verifications`);
         if (!pendingRes.ok) throw new Error('Failed to load pending list. API issue.');
         const students = await pendingRes.json();
         
-        // Mocked stats fetch logic (Replace with dedicated API call if implemented)
-        const stats = {
-            pending: students.length,
-            verified: 124, 
-            rejected: 12
-        };
+        // Update stats based on real data
+        currentStats.pending = students.length;
+        // Note: Without an API for total verified/rejected, we keep these as accumulated values or 0
+        // If your API supports it, fetch real totals here. For now, we initialize them.
+        if (currentStats.verified === 0 && currentStats.rejected === 0) {
+             // Optional: Fetch these from a stats endpoint if available
+        }
 
-        renderStats(stats);
+        renderStats(currentStats);
         renderStudentList(students);
         if(window.lucide) window.lucide.createIcons();
-        console.log(`[AdminPanel] ✅ Dashboard loaded. Pending: ${students.length}`);
     } catch (err) {
         console.error("[AdminPanel] ❌ Dashboard Load Error:", err);
         document.getElementById('student-list-container').innerHTML = 
@@ -123,10 +129,6 @@ async function loadDashboard() {
 }
 
 function renderStats(stats) {
-    const pendingCount = stats.pending;
-    const verifiedCount = stats.verified;
-    const rejectedCount = stats.rejected;
-
     const statsContainer = document.getElementById('stats-container');
     if (!statsContainer) return;
 
@@ -136,7 +138,7 @@ function renderStats(stats) {
             <div class="stat-body">
                 <div class="stat-title">Pending</div>
                 <div class="stat-row">
-                    <div class="stat-value">${pendingCount}</div>
+                    <div class="stat-value">${stats.pending}</div>
                     <div class="stat-desc">Awaiting review</div>
                 </div>
             </div>
@@ -147,7 +149,7 @@ function renderStats(stats) {
             <div class="stat-body">
                 <div class="stat-title">Verified</div>
                 <div class="stat-row">
-                    <div class="stat-value">${verifiedCount}</div>
+                    <div class="stat-value">${stats.verified}</div>
                     <div class="stat-desc">Successfully verified</div>
                 </div>
             </div>
@@ -158,7 +160,7 @@ function renderStats(stats) {
             <div class="stat-body">
                 <div class="stat-title">Rejected</div>
                 <div class="stat-row">
-                    <div class="stat-value">${rejectedCount}</div>
+                    <div class="stat-value">${stats.rejected}</div>
                     <div class="stat-desc">Failed verification</div>
                 </div>
             </div>
@@ -200,7 +202,6 @@ function renderStudentList(students) {
 // --- USER LIST LOGIC ---
 async function loadAllUsers() {
     const container = document.getElementById('all-users-container');
-    console.log("[AdminPanel] Fetching All Users list...");
     container.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-500">Loading users...</td></tr>';
 
     try {
@@ -278,7 +279,6 @@ function renderUsersTable(users) {
 // --- MODALS ---
 
 window.openVerificationModal = (studentId) => {
-    // ... (Verification Modal Logic) ...
     const student = window.currentPendingStudents.find(s => s.id === studentId);
     if (!student) return;
 
@@ -316,20 +316,25 @@ window.openVerificationModal = (studentId) => {
             </div>
 
             <div class="doc-grid">
+                <!-- 🔥 FIXED IMAGE SIZING: Added object-fit:contain and fixed height -->
                 <div class="doc-card">
                     <div class="doc-card-header">
                         <i data-lucide="credit-card" style="width:16px;"></i> Student ID Card
                     </div>
-                    <div class="doc-image-wrapper">
-                        <a href="${idCardSrc}" target="_blank"><img src="${idCardSrc}" class="doc-image" alt="ID Card"></a>
+                    <div class="doc-image-wrapper" style="height: 250px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px;">
+                        <a href="${idCardSrc}" target="_blank" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                            <img src="${idCardSrc}" class="doc-image" alt="ID Card" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        </a>
                     </div>
                 </div>
                 <div class="doc-card">
                     <div class="doc-card-header">
                         <i data-lucide="file-text" style="width:16px;"></i> Fees Receipt
                     </div>
-                    <div class="doc-image-wrapper">
-                        <a href="${receiptSrc}" target="_blank"><img src="${receiptSrc}" class="doc-image" alt="Fees Receipt"></a>
+                    <div class="doc-image-wrapper" style="height: 250px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 6px;">
+                        <a href="${receiptSrc}" target="_blank" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;">
+                            <img src="${receiptSrc}" class="doc-image" alt="Fees Receipt" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        </a>
                     </div>
                 </div>
             </div>
@@ -428,12 +433,26 @@ window.submitDecision = async (id, status) => {
         
         if (res.ok) {
             closeAdminModal('admin-modal-backdrop');
-            loadDashboard(); 
-            showNotification(`Verification set to ${status}.`, 'success');
-            // CRITICAL: After successful verification, trigger update to all users
-            if (stompClient && stompClient.connected) {
-                 stompClient.send("/topic/admin/verifications/update", {}, "Verification performed");
+            
+            // 🔥 REAL-TIME LOCAL UPDATE: Remove student from list immediately
+            if (window.currentPendingStudents) {
+                // Remove the student
+                window.currentPendingStudents = window.currentPendingStudents.filter(s => s.id !== id);
+                
+                // Update stats locally
+                currentStats.pending = window.currentPendingStudents.length;
+                if (status === 'VERIFIED') currentStats.verified++;
+                if (status === 'REJECTED') currentStats.rejected++;
+
+                // Re-render UI immediately
+                renderStats(currentStats);
+                renderStudentList(window.currentPendingStudents);
+            } else {
+                // Fallback if local state is missing
+                loadDashboard(); 
             }
+            
+            showNotification(`Verification set to ${status}.`, 'success');
         } else {
             const err = await res.json();
             showNotification(`Error: ${err.message || "Failed to update status."}`, "error");

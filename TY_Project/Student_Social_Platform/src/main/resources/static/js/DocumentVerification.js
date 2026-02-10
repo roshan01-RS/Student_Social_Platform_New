@@ -13,46 +13,48 @@ window.App = window.App || {};
     
     // --- Helper: Global Notification ---
     const showNotification = (message, type = 'success') => {
-        if (window.showGlobalNotification) {
-            window.showGlobalNotification(message, type);
+        if (window.App && window.App.showGlobalNotification) {
+            window.App.showGlobalNotification(message, type);
         } else {
-            console.warn(`[NOTIFICATION FALLBACK - ${type.toUpperCase()}] ${message}`);
+            console.warn(`[NOTIFICATION] ${message}`);
         }
     };
 
-    App.syncDocumentVerificationState = (profileData) => {
-        if (profileData.verificationStatus) {
-             verificationState.status = profileData.verificationStatus.toUpperCase();
-        } else {
-             verificationState.status = 'NONE';
-        }
-        verificationState.idCardUrl = profileData.idCardUrl;
-        verificationState.receiptUrl = profileData.receiptUrl;
-        verificationState.accountExpireDate = profileData.accountExpireDate;
-    };
+    /* ===============================
+       🔥 REACTIVE UI UPDATE (EVENT DRIVEN)
+       =============================== */
     
-    // --- NEW: Real-time Update Method (for Admin pushes) ---
-    App.updateVerificationStatusRealTime = (newStatus) => {
-        console.log("Updating verification status in real-time:", newStatus);
-        verificationState.status = newStatus.toUpperCase();
+    // Listen for status changes from Home.js (WebSocket)
+    document.addEventListener('verification-status-updated', (e) => {
+        const newStatus = e.detail?.status;
+        if (!newStatus) return;
+        
+        console.log(`[DocUI] Received status update: ${newStatus}`);
+        verificationState.status = newStatus;
         
         const wrapper = document.querySelector('#doc-verification-wrapper');
         if (wrapper) {
             App.renderDocumentVerificationCard(wrapper);
         }
-        
-        if (newStatus === 'VERIFIED') {
-            document.dispatchEvent(new Event('profile-verified'));
-        }
+    });
+
+    // Initialize state from profile load (Static sync)
+    App.syncDocumentVerificationState = (profileData) => {
+        verificationState.status = (profileData.verificationStatus || 'NONE').toUpperCase();
+        verificationState.idCardUrl = profileData.idCardUrl;
+        verificationState.receiptUrl = profileData.receiptUrl;
+        verificationState.accountExpireDate = profileData.accountExpireDate;
+        // NOTE: WebSocket connection logic removed from here as Home.js now handles it centrally.
     };
     
     const resolveImageUrl = (url) => {
         if (!url || url.includes('null')) return 'https://placehold.co/400x300/e2e8f0/94a3b8?text=No+Document';
         if (url.startsWith('http')) return url;
-        return `${window.location.origin}/${url}`;
+        const cleanUrl = url.startsWith('/') ? url.substring(1) : url;
+        return `${window.location.origin}/${cleanUrl}`;
     };
 
-    // --- Helper function to render a single document preview block ---
+    // --- Helper: Render Preview Block ---
     function renderDocumentPreviewBlock(title, src, isVerified, isRejected = false) {
         const primaryColor = isVerified ? '#10b981' : (isRejected ? '#dc2626' : '#2563eb');
         const borderColor = isVerified ? '#86efac' : (isRejected ? '#f87171' : '#93c5fd');
@@ -64,7 +66,7 @@ window.App = window.App || {};
                 Verified
              </div>` : '';
 
-        const statusText = isVerified ? 'Document has been verified successfully' : 
+        const statusText = isVerified ? 'Document verified successfully' : 
                            (isRejected ? 'Verification failed' : 'Awaiting review');
         const iconColor = isVerified ? '#22c55e' : (isRejected ? '#dc2626' : '#9ca3af');
 
@@ -88,21 +90,20 @@ window.App = window.App || {};
                 </svg>
                 ${statusText}
             </div>
-        </div>
-        `;
+        </div>`;
     }
 
-    // --- RENDER CARD IN PROFILE ---
+    // --- RENDER CARD ---
     App.renderDocumentVerificationCard = (container) => {
-        let html = '';
+        if (!container) return;
+
         const ID_CARD_SRC = resolveImageUrl(verificationState.idCardUrl);
         const RECEIPT_SRC = resolveImageUrl(verificationState.receiptUrl);
-        const IS_VERIFIED = verificationState.status === 'VERIFIED';
-        const IS_PENDING = verificationState.status === 'PENDING';
-        const IS_REJECTED = verificationState.status === 'REJECTED'; 
+        const s = verificationState.status;
 
+        let html = '';
 
-        if (verificationState.status === 'NONE') {
+        if (s === 'NONE') {
             html = `
             <div class="doc-verification-card doc-card-initial">
                 <h2 style="font-size:1.6rem;margin-bottom:1.5rem;text-align:left;color:inherit;color: #3b82f6;">Document Verification</h2>
@@ -117,7 +118,7 @@ window.App = window.App || {};
                 </button>
             </div>`;
         } 
-        else if (IS_PENDING) {
+        else if (s === 'PENDING') {
              html = `
             <div class="doc-verification-card doc-card-pending" style="background-color: #f0f9ff; border: 1px solid #93c5fd; border-radius: 16px; padding: 2rem;">
                  <h2 style="font-size:1.6rem;margin-bottom:1rem;text-align:left;color:inherit;">Document Verification</h2>
@@ -130,11 +131,11 @@ window.App = window.App || {};
                 <p style="color: #4b5563; font-size: 1.3rem; margin-bottom: 2rem; text-align: center;">Your documents have been submitted and are currently being reviewed.</p>
                 <div style="margin-top: 1.5rem; color: #2563eb; font-size: 1.2rem; font-weight: 500; text-align: center;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; margin-right: 5px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    Awaiting admin review (24 hours notice)
+                    Awaiting admin review
                 </div>
             </div>`;
         }
-        else if (IS_REJECTED) {
+        else if (s === 'REJECTED') {
             html = `
             <div class="doc-verification-card doc-card-rejected" style="background-color: #fffbeb; border: 1px solid #f97316; border-radius: 16px; padding: 2rem;">
                  <h2 style="font-size:1.6rem;margin-bottom:1rem;text-align:left;color:inherit;">Document Verification</h2>
@@ -144,17 +145,14 @@ window.App = window.App || {};
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </div>
                 </div>
-
                 <h3 style="color: #9a3412; font-size: 1.6rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center;">Verification Rejected</h3>
                 <p style="color: #7c2d12; font-size: 1.3rem; margin-bottom: 1.5rem; text-align: center;">Your documents were rejected. Please check for clarity and validity, then re-upload.</p>
-                
                 <button id="btn-open-upload-modal" class="btn btn-primary" style="background-color:#f97316; border:none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.5rem"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     Re-upload Documents
                 </button>
             </div>`;
         }
-        else if (IS_VERIFIED) {
+        else if (s === 'VERIFIED') {
              html = `
             <div class="doc-verification-card doc-card-verified" style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 16px; padding: 2.5rem; text-align: center;">
                 <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
@@ -186,7 +184,7 @@ window.App = window.App || {};
         }
     };
 
-    // --- MODAL LOGIC ---
+    // --- MODAL LOGIC (Upload Flow) ---
     App.openUploadDocumentsModal = async () => {
         const modal = document.getElementById('reusable-modal');
         const modalContent = document.getElementById('reusable-modal-content');
@@ -322,24 +320,34 @@ window.App = window.App || {};
                         });
 
                         if (res.ok) {
+                            // 🔥 OPTIMISTIC UPDATE: Set local state to PENDING
                             verificationState.status = 'PENDING';
-                            close();
-                            if (window.App.renderProfile) {
-                                const panel = document.querySelector('.content-panel');
-                                window.App.renderProfile(panel); 
+                            
+                            close(); // Close modal immediately
+                            
+                            // Render UI immediately without waiting for server or socket
+                            const wrapper = document.querySelector('#doc-verification-wrapper');
+                            if (wrapper && App.renderDocumentVerificationCard) {
+                                App.renderDocumentVerificationCard(wrapper);
                             }
-                            if (window.App.showGlobalNotification) {
+                            
+                            // 🔥 FIX: Dispatch event to notify other parts of the app (like Home.js) NOT to revert
+                            // Note: Home.js only listens to this to update its internal state, not to trigger a re-render loop.
+                            document.dispatchEvent(new CustomEvent('verification-status-updated', {
+                                detail: { status: 'PENDING' }
+                            }));
+                            
+                            if(window.App.showGlobalNotification) {
                                 window.App.showGlobalNotification("Documents submitted successfully!", "success");
                             }
                         } else {
                             const err = await res.json();
-                            showNotification("Upload failed: " + (err.error || "Unknown error"), "error");
+                            showNotification("Upload failed: " + (err.error || "Unknown"), "error");
                             submitBtn.disabled = false;
                             submitBtn.textContent = 'Submit for Verification';
                         }
                     } catch (e) {
-                        console.error(e);
-                        showNotification("Network error during upload.", "error");
+                        showNotification("Network error", "error");
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit for Verification';
                     }
